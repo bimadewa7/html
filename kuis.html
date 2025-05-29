@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Kuis Lucu</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', Arial, sans-serif;
+            text-align: center;
+            margin-top: 80px;
+            background: linear-gradient(135deg, #fff0f5 60%, #ffe4e1 100%);
+            min-height: 100vh;
+        }
+        h1 {
+            color: #000000;
+            font-size: 2.5em;
+            animation: bounce 1.2s infinite alternate;
+        }
+        @keyframes bounce {
+            to { transform: translateY(-10px);}
+        }
+
+        p {
+            font-size: 1.2em;
+            color: #000000;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        button {
+            padding: 18px 32px;
+            font-size: 20px;
+            margin: 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        #yes {
+            background: linear-gradient(90deg, #ff4d4d, #ff85a2);
+            color: white;
+            font-weight: bold;
+            animation: wiggle 1s infinite alternate;
+        }
+        @keyframes wiggle {
+            0% { transform: rotate(-2deg);}
+            100% { transform: rotate(2deg);}
+        }
+        #no {
+            background: linear-gradient(90deg, #999, #bbb);
+            color: white;
+            position: absolute;
+            left: 60%;
+            top: 60%;
+            font-weight: bold;
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(-8deg);}
+            100% { transform: rotate(8deg);}
+        }
+    </style>
+</head>
+<body>
+    <h1>Hei Hei Bocil!</h1>
+    <p>Kamu itu lucu kaya bocil, kamu bocil ya?</p>
+    
+    <div id="container">
+        <button id="yes">Iyahh</button>
+        <button id="no">Enggak</button>
+    </div>
+
+    <audio id="laugh" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b3d.mp3"></audio>
+    <audio id="nope" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b3d.mp3"></audio>
+
+    <script>
+        const noButton = document.getElementById("no");
+    
+        const yesButton = document.getElementById("yes");
+        const laugh = document.getElementById("laugh");
+
+        // Funny messages for "no" button
+        const funnyMessages = [
+            "Yakin bukan bocil? ",
+            "Kok lari sih? ",
+            "Jangan boong deh! ",
+            "Bocil detected! ",
+            "Eh, jangan kabur dong! ",
+            "Makin dikejar makin bocil~"
+        ];
+
+        let moveCount = 0;
+        const container = document.getElementById("container");
+
+        function moveNoButton() {
+            moveCount++;
+            const containerRect = container.getBoundingClientRect();
+            const maxX = container.offsetWidth - noButton.offsetWidth;
+            const maxY = container.offsetHeight - noButton.offsetHeight;
+
+            // Tambah jarak lari tiap kali dicoba tekan
+            let multiplier = 1 + moveCount * 0.2;
+            let newX = Math.floor(Math.random() * maxX * multiplier) % maxX;
+            let newY = Math.floor(Math.random() * maxY * multiplier) % maxY;
+
+            noButton.style.left = newX + "px";
+            noButton.style.top = newY + "px";
+
+            // Ganti tulisan tombol secara acak
+            noButton.textContent = funnyMessages[Math.floor(Math.random() * funnyMessages.length)];
+        }
+
+        // Untuk desktop: mouseover
+        noButton.addEventListener("mouseover", moveNoButton);
+
+        // Untuk HP: sentuh
+        noButton.addEventListener("touchstart", function(e) {
+            e.preventDefault();
+            moveNoButton();
+        });
+
+        yesButton.onclick = function() {
+
+            yesButton.textContent = "Akhirnya ngaku! ";
+            setTimeout(() => {
+                alert('Hohoho akhirnya mengakui, bocil detected! 🎉');
+            }, 500);
+        };
+    </script>
+</body>
+</html>
