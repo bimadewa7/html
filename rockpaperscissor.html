@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors Game</title>
+<style>
+body {
+  background-color: #f1f1f1;
+  font-family: "Comic Sans MS", "Arial", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 2.5rem;
+  text-align: center;
+  padding-top: 60px;
+  color: #ff9800;
+  text-shadow: 2px 2px 0 #fff176, 4px 4px 0 #ff5722;
+  letter-spacing: 2px;
+}
+
+p {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+button {
+    border: none;
+    font-size: 2rem;
+    margin: 0 0.5rem;
+    padding: 0.5rem 2.2rem;
+    cursor: pointer;
+    border-radius: 16px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    position: relative;
+    z-index: 1;
+    /* Default fallback background */
+    background: #fff;
+}
+
+/* Unique rectangle backgrounds for each button */
+#rock {
+    background: linear-gradient(135deg, #ff5252 60%, #ff867f 100%);
+    color: #fff;
+}
+
+#paper {
+    background: linear-gradient(135deg, #2196f3 60%, #6ec6ff 100%);
+    color: #fff;
+}
+
+#scissors {
+    background: linear-gradient(135deg, #4caf50 60%, #80e27e 100%);
+    color: #fff;
+}
+
+
+button:hover {
+  transform: scale(1.15) rotate(-10deg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0.85;
+}
+
+#rock {
+  background-color: #ff5252;
+  color: #fff;
+}
+
+#paper {
+  background-color: #2196f3;
+  color: #fff;
+}
+
+#scissors {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+#user-score {
+  color: #2196f3;
+}
+
+#computer-score {
+  color: #ff5252;
+}
+
+#battle-arena {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 30px 0 10px 0;
+  min-height: 90px;
+  font-size: 3rem;
+  gap: 40px;
+}
+
+.battle-emoji {
+  display: inline-block;
+  transition: transform 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+  font-size: 3.5rem;
+}
+
+.bounce {
+  animation: bounce 0.6s;
+}
+
+@keyframes bounce {
+  0% { transform: scale(1) translateY(0);}
+  30% { transform: scale(1.3) translateY(-30px);}
+  60% { transform: scale(0.9) translateY(10px);}
+  100% { transform: scale(1) translateY(0);}
+}
+
+#vs {
+  font-size: 2.5rem;
+  color: #ff9800;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 #fff176;
+  animation: shakeVs 0.6s;
+}
+
+@keyframes shakeVs {
+  0% { transform: rotate(0);}
+  20% { transform: rotate(-10deg);}
+  40% { transform: rotate(10deg);}
+  60% { transform: rotate(-5deg);}
+  80% { transform: rotate(5deg);}
+  100% { transform: rotate(0);}
+}
+
+#result {
+  font-size: 1.6rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 20px 0 10px 0;
+  color: #ff9800;
+  min-height: 32px;
+  text-shadow: 1px 1px 0 #fff;
+}
+
+#scores {
+  font-size: 1.2rem;
+  text-align: center;
+  margin-top: 10px;
+  color: #333;
+}
+
+#reset-btn {
+  display: block;
+  margin: 25px auto 0 auto;
+  padding: 0.5rem 1.5rem;
+  font-size: 1.1rem;
+  border-radius: 20px;
+  border: none;
+  background: #ff9800;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: background 0.2s;
+}
+#reset-btn:hover {
+  background: #ff5722;
+}
+</style>
+</head>
+<body>
+    <h1>💥Rock Paper Scissors Game💥</h1>
+    <p>Pilih gerakanmu, hohohoho!</p>
+    <div class="buttons">
+        <button id="rock" title="Rock (Batu)">✊</button>
+        <button id="paper" title="Paper (Kertas)">✋</button>
+        <button id="scissors" title="Scissors (Gunting)">✂️</button>
+    </div>
+    <div id="battle-arena">
+      <span id="player-emoji" class="battle-emoji"></span>
+      <span id="vs"></span>
+      <span id="computer-emoji" class="battle-emoji"></span>
+    </div>
+    <p id="result"></p>
+    <p id="scores">
+        Your score: <span id="user-score">0</span>
+        Bima score: <span id="computer-score">0</span>
+    </p>
+    <button id="reset-btn">Reset 🔄</button>
+    <script>
+const buttons = document.querySelectorAll("#rock, #paper, #scissors");
+const resultEl = document.getElementById("result");
+const playerScoreEl = document.getElementById("user-score");
+const computerScoreEl = document.getElementById("computer-score");
+const playerEmoji = document.getElementById("player-emoji");
+const computerEmoji = document.getElementById("computer-emoji");
+const vsEl = document.getElementById("vs");
+const resetBtn = document.getElementById("reset-btn");
+
+let playerScore = 0;
+let computerScore = 0;
+
+const emojiMap = {
+  rock: "✊",      // More universal rock emoji
+  paper: "✋",     // More universal paper emoji
+  scissors: "✂️"
+};
+
+const funnyCommentsWin = [
+    "Itu luar biasa! ",
+    "Kamu main kayak pro! Atau jangan-jangan curang? ",
+    "Batu, kertas, gunting... dan sedikit keberuntungan!",
+    "Kamu curang ya? ",
+    "Wow, pertarungan sengit! 💥",
+    "Bima terkesan!",
+    "Saatnya tarian kemenangan!",
+    "Kamu menghancurkannya!",
+    "Bima nggak percaya nih!",
+    "Kamu nggak terkalahkan!",
+    "Bima kagum sama skill kamu!",
+];
+
+const funnyCommentsLose = [
+    "Nangis dong, nangis!",
+    "Bima ketawa liat kamu kalah!",
+    "Kok bisa kalah sih?",
+    "Minta bantuan mama aja gih!",
+    "Jangan nangis ya, kecil!",
+    "Hohohohoho",
+    "Coba lagi, siapa tahu hoki!",
+    "Bima lagi on fire nih!",
+    "Jangan nyerah dong!",
+    "Bima: 'Gampang banget!'",
+    "Nyaris aja tuh, hampir menang!",
+    "Jangan sedih ya pendek!"
+];
+
+function getFunnyComment(resultType) {
+    if (resultType === "win") {
+        return funnyCommentsWin[Math.floor(Math.random() * funnyCommentsWin.length)];
+    } else if (resultType === "lose") {
+        return funnyCommentsLose[Math.floor(Math.random() * funnyCommentsLose.length)];
+    } else {
+        // Tie
+        return "Seri! Coba lagi!";
+    }
+}
+
+function animateBattle(player, computer, callback) {
+  playerEmoji.textContent = "";
+  computerEmoji.textContent = "";
+  vsEl.textContent = "";
+
+  // Animation: show "?" then reveal after a short delay
+  playerEmoji.textContent = "❓";
+  computerEmoji.textContent = "❓";
+  vsEl.textContent = "";
+
+  setTimeout(() => {
+    playerEmoji.textContent = emojiMap[player];
+    computerEmoji.textContent = emojiMap[computer];
+    vsEl.textContent = "VS";
+    playerEmoji.classList.add("bounce");
+    computerEmoji.classList.add("bounce");
+    vsEl.style.animation = "shakeVs 0.6s";
+    setTimeout(() => {
+      playerEmoji.classList.remove("bounce");
+      computerEmoji.classList.remove("bounce");
+      vsEl.style.animation = "";
+      if (callback) callback();
+    }, 600);
+  }, 400);
+}
+
+buttons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const playerSelection = button.id;
+    const computerSelection = computerPlay();
+    animateBattle(playerSelection, computerSelection, () => {
+      const result = playRound(playerSelection, computerSelection);
+      let resultType;
+      if (playerSelection === computerSelection) {
+        resultType = "tie";
+      } else if (
+        (playerSelection === "rock" && computerSelection === "scissors") ||
+        (playerSelection === "paper" && computerSelection === "rock") ||
+        (playerSelection === "scissors" && computerSelection === "paper")
+      ) {
+        resultType = "win";
+      } else {
+        resultType = "lose";
+      }
+      resultEl.innerHTML = result + "<br><span style='font-size:1rem;color:#888'>" + getFunnyComment(resultType) + "</span>";
+    });
+  });
+});
+
+function computerPlay() {
+  const choices = ["rock", "paper", "scissors"];
+  const randomChoice = Math.floor(Math.random() * choices.length);
+  return choices[randomChoice];
+}
+
+function playRound(playerSelection, computerSelection) {
+if (playerSelection === computerSelection) {
+    return "Seri! Keduanya memilih <b>" + playerSelection + "</b>!";
+  } else if (
+    (playerSelection === "rock" && computerSelection === "scissors") ||
+    (playerSelection === "paper" && computerSelection === "rock") ||
+    (playerSelection === "scissors" && computerSelection === "paper")
+  ) {
+    playerScore++;
+    playerScoreEl.textContent = playerScore;
+    return "Kamu menang! <b>" + capitalize(playerSelection) + "</b> mengalahkan <b>" + computerSelection + "</b>!";
+  } else {
+    computerScore++;
+    computerScoreEl.textContent = computerScore;
+    return "Kamu kalah! <b>" + capitalize(computerSelection) + "</b> mengalahkan <b>" + playerSelection + "</b>!";
+  }
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+resetBtn.addEventListener("click", () => {
+  playerScore = 0;
+  computerScore = 0;
+  playerScoreEl.textContent = "0";
+  computerScoreEl.textContent = "0";
+  resultEl.innerHTML = ""; // Clear result and funny comment
+  playerEmoji.textContent = "";
+  computerEmoji.textContent = "";
+  vsEl.textContent = "";
+});
+    </script>
+</body>
+</html>
