@@ -93,6 +93,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
+// --- Set ukuran minimal background tetap di semua device ---
+const MIN_BG_WIDTH = 2400;
+const MIN_BG_HEIGHT = 1600;
+
 const firebaseConfig = {
   apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
   authDomain: "constellation-b1844.firebaseapp.com",
@@ -111,7 +115,7 @@ const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
 // Responsive background size: aspect ratio always follows screen
-let bgWidth = 2400, bgHeight = 1600;
+let bgWidth = MIN_BG_WIDTH, bgHeight = MIN_BG_HEIGHT;
 let MIN_SCALE = 1, MAX_SCALE = 5;
 
 let stars = [];
@@ -207,7 +211,8 @@ function draw() {
 }
 
 function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
+  // Batasi dpr agar tidak berat di HP
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = window.innerWidth * dpr;
   canvas.height = window.innerHeight * dpr;
   canvas.style.width = window.innerWidth + "px";
@@ -216,13 +221,19 @@ function resizeCanvas() {
   ctx.scale(dpr, dpr);
 
   // Responsive background: aspect ratio same as screen
-  bgWidth = 2400;
-  bgHeight = 2400 * (window.innerHeight / window.innerWidth);
+  // Tapi area minimal = 2400x1600 (atau bisa kamu ganti)
+  if (window.innerWidth / window.innerHeight > MIN_BG_WIDTH / MIN_BG_HEIGHT) {
+    bgWidth = MIN_BG_WIDTH;
+    bgHeight = MIN_BG_WIDTH * (window.innerHeight / window.innerWidth);
+  } else {
+    bgHeight = MIN_BG_HEIGHT;
+    bgWidth = MIN_BG_HEIGHT * (window.innerWidth / window.innerHeight);
+  }
 
-  // Batas zoom out: 1.5x dari layar (tidak bisa lebih kecil dari ini)
+  // Batas zoom out: background tidak bisa lebih kecil dari area minimal (1x ukuran tetap, tidak pernah lebih kecil)
   MIN_SCALE = Math.max(
-    (window.innerWidth / bgWidth) * 1.5,
-    (window.innerHeight / bgHeight) * 1.5
+    window.innerWidth / bgWidth,
+    window.innerHeight / bgHeight
   );
   scale = MIN_SCALE;
   offsetX = 0;
