@@ -168,6 +168,7 @@
     <button onclick="promptConstellationName()">➕ Nama Rasi</button>
     <button onclick="removeConstellationName()">🗑️ Hapus Nama Rasi</button>
     <button onclick="changeConstellationColor()">🌈 Ganti Warna Nama</button>
+    <button onclick="toggleConstellationName()" id="toggleNameGroupBtn">🙈 Sembunyikan Nama Rasi Ini</button>
   </div>
   <div id="closeBtn" onclick="hideContextMenu()">X</div>
 </div>
@@ -177,11 +178,10 @@
 <div id="controls">
   ✨ 2x Tap/DblClick pada bintang untuk kelola bintang/rasi<br>
   <button onclick="resetStars()">🔄 Reset Semua</button>
+  <button onclick="toggleAllConstellationNames()" id="toggleNamesBtn">🙈 Sembunyikan Semua Nama Rasi</button>
 </div>
 <div id="starInfo"></div>
 <script type="module">
-// Kode ini tidak menggunakan Firebase untuk menyederhanakan, silakan tambahkan jika ingin persistent
-
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
@@ -204,6 +204,7 @@ const constellationMenuSection = document.getElementById("constellationMenuSecti
 const controls = document.getElementById("controls");
 const menuToggleBtn = document.getElementById("menuToggleBtn");
 const starInfo = document.getElementById("starInfo");
+const toggleNamesBtn = document.getElementById("toggleNamesBtn");
 
 function toggleControls() {
   if (controls.style.display === "none" || controls.style.display === "") {
@@ -219,7 +220,6 @@ menuToggleBtn.innerHTML = "&#9776;";
 
 // --- Grup/rasi detection ---
 function detectGroups() {
-  // Reset
   let visited = new Array(stars.length).fill(false);
   let groups = [];
   let starToGroup = new Array(stars.length).fill(null);
@@ -314,6 +314,20 @@ function draw() {
     ctx.fillText(gdata.name, centerX, topY - nameOffset);
     ctx.restore();
   });
+  updateToggleNamesBtn();
+}
+
+// --- Toggle All Names ---
+function toggleAllConstellationNames() {
+  let anyVisible = groupData.some(g => g.visible !== false);
+  groupData.forEach(g => g.visible = !anyVisible);
+  draw();
+  updateToggleNamesBtn();
+}
+function updateToggleNamesBtn() {
+  let anyVisible = groupData.some(g => g.visible !== false);
+  if (toggleNamesBtn)
+    toggleNamesBtn.textContent = anyVisible ? "🙈 Sembunyikan Semua Nama Rasi" : "👁️ Tampilkan Semua Nama Rasi";
 }
 
 // --- Event logic ---
@@ -324,16 +338,21 @@ function resetStars() {
   cachedGroups = null;
   hideContextMenu();
   draw();
+  updateToggleNamesBtn();
 }
 
 // Context menu logic
 function showContextMenu(x, y, starIdx) {
   detectGroups();
   contextStar = starIdx;
-  // Deteksi grup bintang ini
   contextGroupIdx = cachedGroups.starToGroup[starIdx];
   starMenuSection.style.display = starIdx !== null ? "block" : "none";
   constellationMenuSection.style.display = contextGroupIdx !== null ? "block" : "none";
+  // update tombol toggle nama rasi per grup
+  if (contextGroupIdx !== null) {
+    let btn = document.getElementById("toggleNameGroupBtn");
+    btn.textContent = (groupData[contextGroupIdx].visible !== false) ? "🙈 Sembunyikan Nama Rasi Ini" : "👁️ Tampilkan Nama Rasi Ini";
+  }
   contextMenu.style.left = x + "px";
   contextMenu.style.top = y + "px";
   contextMenu.style.display = "block";
@@ -353,9 +372,7 @@ function editSelectedStar() {
 }
 function deleteSelectedStar() {
   if (contextStar !== null) {
-    // Hapus bintang dan koneksinya
     stars.splice(contextStar, 1);
-    // Update koneksi (hapus yang terkait bintang ini, kurangi index)
     connections = connections
       .filter(([a, b]) => a !== contextStar && b !== contextStar)
       .map(([a, b]) => [
@@ -418,6 +435,13 @@ function changeConstellationColor() {
   }
   hideContextMenu();
 }
+function toggleConstellationName() {
+  if (contextGroupIdx !== null) {
+    groupData[contextGroupIdx].visible = !groupData[contextGroupIdx].visible;
+    draw();
+  }
+  hideContextMenu();
+}
 
 // Helper: cari star di posisi tertentu
 function findStarAt(x, y) {
@@ -460,12 +484,10 @@ canvas.addEventListener("dblclick", (e) => {
   const { x, y } = { x: e.clientX, y: e.clientY };
   const starIdx = findStarAt(x, y);
   if (firstStar !== null && starIdx !== -1 && starIdx !== firstStar) {
-    // Hanya boleh connect bila kedua bintang pada grup yang sama ATAU salah satu belum punya grup
     const { starToGroup } = detectGroups();
     const g1 = starToGroup[firstStar];
     const g2 = starToGroup[starIdx];
     if (g1 === null && g2 === null) {
-      // Buat grup baru
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
     } else if (g1 !== null && g2 === null) {
@@ -475,7 +497,6 @@ canvas.addEventListener("dblclick", (e) => {
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
     } else if (g1 === g2) {
-      // Sudah satu grup, tetap boleh connect
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
     } else {
@@ -485,7 +506,6 @@ canvas.addEventListener("dblclick", (e) => {
     draw();
     return;
   }
-  // Jika klik bintang tanpa mode sambung, tampilkan menu context
   if (starIdx !== -1) {
     showContextMenu(e.clientX, e.clientY, starIdx);
   }
@@ -535,8 +555,9 @@ window.resetStars = resetStars;
 window.promptConstellationName = promptConstellationName;
 window.removeConstellationName = removeConstellationName;
 window.changeConstellationColor = changeConstellationColor;
+window.toggleConstellationName = toggleConstellationName;
+window.toggleAllConstellationNames = toggleAllConstellationNames;
 window.toggleControls = toggleControls;
-
 </script>
 </body>
 </html>
