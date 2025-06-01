@@ -100,8 +100,6 @@ const db = getDatabase(app);
 
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
 // Banyak bintik bintang kecil diperbanyak
 const BG_STAR_COUNT = 400;
@@ -110,8 +108,8 @@ function genBgStars() {
   bgStars = [];
   for (let i = 0; i < BG_STAR_COUNT; ++i) {
     bgStars.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
       r: Math.random() * 1.3 + 0.2 // 0.2-1.5 px
     });
   }
@@ -146,7 +144,10 @@ window.toggleConstellationNames = function() {
 };
 
 function draw() {
-  // Latar belakang bintang kecil TIDAK ikut zoom/pan (tetap di layar)
+  // ======= CANVAS HI-DPI FIX (RETINA, MOBILE) =======
+  // canvas.width and canvas.height should have been set to CSS px * dpr.
+  // This function assumes that ctx is already scaled with dpr.
+  // Draw background static (NOT zoomed), so use ctx.setTransform(1,0,0,1,0,0)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
@@ -230,6 +231,22 @@ function draw() {
   }
 }
 
+// HI-DPI/RETINA/MOBILE canvas fix
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  genBgStars();
+  draw();
+}
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", resizeCanvas);
+resizeCanvas();
+
 function saveToFirebase() {
   set(ref(db, "constellations"), {
     stars: stars.map(s => ({ x: s.x, y: s.y, message: s.message })),
@@ -252,6 +269,8 @@ function loadFromFirebase() {
     }
   });
 }
+loadFromFirebase();
+
 function resetStars() {
   stars = [];
   connections = [];
@@ -490,17 +509,6 @@ canvas.addEventListener("pointermove", (e) => {
   }
 });
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  genBgStars();
-  draw();
-}
-window.addEventListener("resize", resizeCanvas);
-window.addEventListener("orientationchange", resizeCanvas);
-resizeCanvas();
-loadFromFirebase();
-
 window.resetStars = resetStars;
 
 canvas.addEventListener("wheel", (e) => {
@@ -581,6 +589,7 @@ canvas.addEventListener("touchmove", (e) => {
 canvas.addEventListener("touchend", () => { isDragging = false; });
 
 function toCanvasCoords(x, y) {
+  // Perhatikan bahwa semua perhitungan sudah di-skala dpr (karena ctx.scale di resizeCanvas)
   return { x: (x - offsetX) / scale, y: (y - offsetY) / scale };
 }
 </script>
