@@ -38,19 +38,25 @@
       top: 10px; left: 10px;
       background: rgba(0,0,0,0.6);
       padding: 10px; border-radius: 8px; z-index: 5;
+      transition: opacity 0.2s;
     }
-    button { background: #fff; border: none; border-radius: 5px; padding: 5px 10px; margin: 4px 0; font-size: 14px; cursor: pointer; }
-    button:hover { background: #ffcccb; }
-    #starInfo {
-      position: absolute; background: rgba(0, 0, 0, 0.6);
-      color: white; padding: 10px; font-size: 12px;
-      border-radius: 5px; display: none; z-index: 15;
+    .hidden-controls { display: none; }
+    #toggleControlsBtn {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      z-index: 10;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 18px;
+      cursor: pointer;
     }
-    .highlighted { fill: #FF0 !important; stroke: #FF0 !important; stroke-width: 2; }
-    .star { filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 24px #fff) drop-shadow(0 0 36px #ff0); transition: filter 0.2s; }
     @media (max-width: 600px) {
       #controls { top: 0; left: 0; width: 100vw; font-size: 4vw; padding: 4vw 2vw; border-radius: 0 0 12px 12px; }
-      button { font-size: 4vw; padding: 3vw 6vw; }
+      button, #toggleControlsBtn { font-size: 4vw; padding: 3vw 6vw; }
       #starInfo { font-size: 3vw; padding: 3vw; }
       #starMenu, #messageBox { font-size: 4vw; padding: 3vw; }
       #closeStarMenu { width: 8vw; height: 8vw; font-size: 6vw; line-height: 8vw; }
@@ -58,6 +64,7 @@
   </style>
 </head>
 <body>
+<button id="toggleControlsBtn" title="Tampilkan/sembunyikan menu">☰</button>
 <canvas id="sky"></canvas>
 <div id="messageBox"></div>
 <div id="starMenu">
@@ -72,9 +79,11 @@
   <div id="closeStarMenu">X</div>
 </div>
 <div id="controls">
-  ✨ 2x Tap/Klik untuk menambah bintang<br>
-  ❌ 2x Tap/Klik pada bintang = Menu Bintang & Rasi<br>
-  🔗 Pilih Sambung Bintang lalu tekan bintang kedua<br>
+  <div id="caraPakai">
+    ✨ 2x Tap/Klik untuk menambah bintang<br>
+    ❌ 2x Tap/Klik pada bintang = Menu Bintang & Rasi<br>
+    🔗 Pilih Sambung Bintang lalu tekan bintang kedua<br>
+  </div>
   <button onclick="resetStars()">🔄 Reset Semua</button>
   <button onclick="toggleConstellationNames()">🌌 Tampil/Sembunyi Nama/Isi Rasi</button>
 </div>
@@ -101,12 +110,8 @@ const db = getDatabase(app);
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
-// Background size & min zoom
-let bgWidth = 2400, bgHeight = 1600;
-const MIN_SCALE = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
-const MAX_SCALE = 5;
-
-// Data
+// Responsive background size: same aspect ratio as screen
+let bgWidth = 2400, bgHeight = 1600; // initial fallback
 let stars = [];
 let connections = [];
 let showNames = false;
@@ -118,8 +123,10 @@ const messageBox = document.getElementById("messageBox");
 const starMenu = document.getElementById("starMenu");
 const starInfo = document.getElementById("starInfo");
 
-// Zoom & pan
-let scale = MIN_SCALE, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
+let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
+let MIN_SCALE = 1, MAX_SCALE = 5;
+
+// No background dots (bintik) in this version
 
 window.toggleConstellationNames = function() {
   if (!showNames && !showMessages) {
@@ -136,7 +143,7 @@ window.toggleConstellationNames = function() {
 };
 
 function draw() {
-  // ======= BACKGROUND: hanya gradient (tanpa bintik) =======
+  // Only gradient background (no dots)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -210,9 +217,15 @@ function resizeCanvas() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
 
-  // Atur minimal zoom agar background selalu menutupi layar
-  scale = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
-  offsetX = 0; offsetY = 0;
+  // Responsive background: aspect ratio same as screen
+  bgWidth = 2400;
+  bgHeight = 2400 * (window.innerHeight / window.innerWidth);
+
+  // Batas zoom: agar background tidak gepeng dan selalu menutupi layar
+  MIN_SCALE = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
+  scale = MIN_SCALE;
+  offsetX = 0;
+  offsetY = 0;
   draw();
 }
 window.addEventListener("resize", resizeCanvas);
@@ -555,6 +568,26 @@ canvas.addEventListener("touchend", () => { isDragging = false; });
 function toCanvasCoords(x, y) {
   return { x: (x - offsetX) / scale, y: (y - offsetY) / scale };
 }
+
+// Tombol sembunyi/tampil controls
+const controls = document.getElementById('controls');
+const toggleBtn = document.getElementById('toggleControlsBtn');
+let controlsVisible = true;
+toggleBtn.onclick = function() {
+  controlsVisible = !controlsVisible;
+  if (controlsVisible) {
+    controls.classList.remove('hidden-controls');
+    toggleBtn.textContent = '✖';
+    toggleBtn.title = "Sembunyikan menu";
+  } else {
+    controls.classList.add('hidden-controls');
+    toggleBtn.textContent = '☰';
+    toggleBtn.title = "Tampilkan menu";
+  }
+};
+// Default: menu tampil, tombol ✖ (close)
+toggleBtn.textContent = '✖';
+toggleBtn.title = "Sembunyikan menu";
 </script>
 </body>
 </html>
