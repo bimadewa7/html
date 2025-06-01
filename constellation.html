@@ -53,6 +53,27 @@
       text-align: center;
       line-height: 25px;
     }
+    #menuToggleBtn {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 20;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      width: 38px;
+      height: 38px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #menuToggleBtn:hover {
+      background: #222;
+    }
     #controls {
       position: absolute;
       top: 10px;
@@ -60,12 +81,10 @@
       background: rgba(0,0,0,0.6);
       padding: 10px;
       border-radius: 8px;
-      z-index: 5;
+      z-index: 15;
+      min-width: 210px;
       transition: opacity 0.2s;
-    }
-    .hide-controls {
-      opacity: 0;
-      pointer-events: none;
+      display: none;
     }
     button {
       background: #fff;
@@ -98,12 +117,6 @@
       filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 24px #fff) drop-shadow(0 0 36px #ff0);
       transition: filter 0.2s;
     }
-    .constellation-name {
-      font-weight: bold;
-      text-shadow: 1px 1px 4px #000, 0 0 2px #fff;
-      pointer-events: none;
-      user-select: none;
-    }
     @media (max-width: 600px) {
       #controls {
         top: 0;
@@ -112,6 +125,7 @@
         font-size: 4vw;
         padding: 4vw 2vw;
         border-radius: 0 0 12px 12px;
+        min-width: unset;
       }
       button {
         font-size: 4vw;
@@ -130,6 +144,11 @@
         height: 8vw;
         font-size: 6vw;
         line-height: 8vw;
+      }
+      #menuToggleBtn {
+        width: 12vw;
+        height: 12vw;
+        font-size: 7vw;
       }
     }
   </style>
@@ -152,15 +171,16 @@
   </div>
   <div id="closeBtn" onclick="hideContextMenu()">X</div>
 </div>
+<!-- Hamburger/Close Button -->
+<button id="menuToggleBtn" onclick="toggleControls()">&#9776;</button>
+<!-- Menu Controls -->
 <div id="controls">
-  ✨ 2x Tap untuk menambah/mengelola bintang<br>
+  ✨ 2x Tap/DblClick pada bintang untuk kelola bintang<br>
   <button onclick="resetStars()">🔄 Reset Semua</button>
   <hr style="border:1px solid #222">
   <button onclick="toggleConstellationName()" id="toggleNameBtn">👁️ Sembunyikan Nama Rasi</button>
-  <button onclick="toggleControls()" id="toggleControlsBtn">⬅️ Sembunyikan Menu</button>
 </div>
 <div id="starInfo"></div>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
   import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
@@ -201,9 +221,23 @@
   const contextMenu = document.getElementById("contextMenu");
   const starMenuSection = document.getElementById("starMenuSection");
   const controls = document.getElementById("controls");
+  const menuToggleBtn = document.getElementById("menuToggleBtn");
   const toggleNameBtn = document.getElementById("toggleNameBtn");
-  const toggleControlsBtn = document.getElementById("toggleControlsBtn");
   const starInfo = document.getElementById("starInfo");
+
+  // Hamburger/close logic
+  function toggleControls() {
+    if (controls.style.display === "none" || controls.style.display === "") {
+      controls.style.display = "block";
+      menuToggleBtn.innerHTML = "&times;";
+    } else {
+      controls.style.display = "none";
+      menuToggleBtn.innerHTML = "&#9776;";
+    }
+  }
+  // Set initial state
+  controls.style.display = "none";
+  menuToggleBtn.innerHTML = "&#9776;";
 
   // Pan/zoom
   let scale = 1;
@@ -247,7 +281,6 @@
 
     // Draw constellation name (if enabled and ada koneksi)
     if (constellation.name && constellation.visible && connections.length > 0) {
-      // Ambil semua titik koneksi, cari bounding box di tengah koneksi
       let xs = [], ys = [];
       connections.forEach(([a, b]) => {
         xs.push(a.x, b.x);
@@ -257,10 +290,7 @@
       const minY = Math.min(...ys), maxY = Math.max(...ys);
       const centerX = (minX + maxX) / 2;
       const centerY = (minY + maxY) / 2;
-
-      // Jarak offset ke atas (agar tidak nabrak bintang/koneksi)
-      const nameOffset = 30; // px
-
+      const nameOffset = 30;
       ctx.save();
       ctx.font = "bold 26px Arial";
       ctx.fillStyle = constellation.color || "#FFD700";
@@ -369,7 +399,6 @@
     }
     hideContextMenu();
   }
-  // Helper: cari star di posisi tertentu
   function findStarAt(x, y) {
     return stars.find(star => {
       const dx = star.x - x;
@@ -418,12 +447,8 @@
   function updateToggleNameBtn() {
     toggleNameBtn.textContent = constellation.visible ? "👁️ Sembunyikan Nama Rasi" : "👁️ Tampilkan Nama Rasi";
   }
-  function toggleControls() {
-    controls.classList.toggle("hide-controls");
-    toggleControlsBtn.textContent = controls.classList.contains("hide-controls") ? "➡️ Tampilkan Menu" : "⬅️ Sembunyikan Menu";
-  }
 
-  // -- Event: Double tap/klik untuk menu/menambah bintang
+  // --- Double Tap & Double Click Logic yang benar ---
   let lastTap = 0;
   let tapTimeout;
   canvas.addEventListener("pointerdown", (e) => {
@@ -435,9 +460,8 @@
     if (now - lastTap < 350) {
       // Double tap
       if (clickedStar) {
-        showContextMenu(e.clientX, e.clientY, clickedStar); // tampilkan menu gabungan
+        showContextMenu(e.clientX, e.clientY, clickedStar);
       } else {
-        // Tambah bintang baru di posisi tap
         const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
         if (msg !== null) {
           stars.push({ x, y, message: msg });
@@ -452,7 +476,6 @@
     }
   });
 
-  // Connect stars (klik bintang lain setelah sambung)
   canvas.addEventListener("dblclick", (e) => {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
     const clickedStar = findStarAt(x, y);
@@ -464,23 +487,24 @@
       draw();
       return;
     }
+    // --- Tambahan: jika klik bintang dan BUKAN mode sambung, tampilkan menu context ---
+    if (clickedStar) {
+      showContextMenu(e.clientX, e.clientY, clickedStar);
+    }
   });
 
-  // Hide context menu on click outside
   document.addEventListener("pointerdown", (e) => {
     if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
       hideContextMenu();
     }
   });
 
-  // Show star info when mouse or touch is near a star
   canvas.addEventListener("pointermove", (e) => {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
     const hoveredStar = findStarAt(x, y);
     if (hoveredStar) {
       starInfo.textContent = `Koordinat: (${hoveredStar.x.toFixed(2)}, ${hoveredStar.y.toFixed(2)})`;
       starInfo.innerHTML += `<br>Pesan: ${hoveredStar.message || "Tidak ada pesan"}`;
-      // Position starInfo above the pointer
       const infoRect = starInfo.getBoundingClientRect();
       let left = e.clientX + 10;
       let top = e.clientY - (infoRect.height || 40) - 10;
@@ -496,7 +520,6 @@
     }
   });
 
-  // Responsive canvas
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -506,10 +529,8 @@
   window.addEventListener("orientationchange", resizeCanvas);
   resizeCanvas();
 
-  // Load data dari Firebase saat awal
   loadFromFirebase();
 
-  // Pan/zoom/dll
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const mouse = toCanvasCoords(e.clientX, e.clientY);
@@ -576,7 +597,6 @@
   window.toggleConstellationName = toggleConstellationName;
   window.toggleControls = toggleControls;
 
-  // Konversi ke koordinat canvas
   function toCanvasCoords(x, y) {
     return {
       x: (x - offsetX) / scale,
