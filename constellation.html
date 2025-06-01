@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multi Constellation Creator 🌟</title>
+  <title>Constellation Creator 🌟</title>
   <style>
     body {
       margin: 0;
@@ -39,6 +39,7 @@
     #contextMenu button:hover {
       background: #f0f0f0;
     }
+    /* No #closeBtn style anymore */
     #controls {
       position: absolute;
       top: 10px;
@@ -198,6 +199,7 @@
 <canvas id="sky"></canvas>
 <div id="messageBox"></div>
 <div id="contextMenu">
+  <!-- No close button here -->
   <div id="starGroupMenuSection" style="margin-top:2px;">
     <button onclick="editSelectedStar()">✏️ Edit Pesan</button>
     <button onclick="deleteSelectedStar()">🗑️ Hapus Bintang</button>
@@ -207,7 +209,6 @@
     <button onclick="promptGroupName()">➕ Nama Grup</button>
     <button onclick="removeGroupName()">🗑️ Hapus Nama Grup</button>
     <button onclick="toggleGroupNameVisibility()" id="toggleGroupNameBtn">👁️ Sembunyikan Nama Grup</button>
-    <button onclick="startMoveGroupName()" id="moveGroupNameBtn">🖐️ Pindah Posisi Nama Grup</button>
     <div id="groupColorChoices">
       <span style="font-size:13px;margin-right:4px;">🌈 Warna Nama:</span>
       <button class="color-btn" style="background:#FFD700;" data-color="#FFD700"></button>
@@ -261,7 +262,6 @@
   let contextStar = null;
   let contextGroupIdx = null;
   let connectMode = false;
-  let moveGroupNameMode = false;
 
   const messageBox = document.getElementById("messageBox");
   const contextMenu = document.getElementById("contextMenu");
@@ -273,7 +273,6 @@
   const groupColorChoices = document.getElementById("groupColorChoices");
   const colorBtns = groupColorChoices.querySelectorAll(".color-btn");
   const customColorPicker = document.getElementById("customColorPicker");
-  const moveGroupNameBtn = document.getElementById("moveGroupNameBtn");
 
   let scale = 1;
   let offsetX = 0;
@@ -315,23 +314,17 @@
         starIndices: [...starIndices],
         name: meta?.name || "",
         color: meta?.color || "#FFD700",
-        visible: meta?.visible !== undefined ? meta.visible : true,
-        nameOffsetX: meta?.nameOffsetX || 0,
-        nameOffsetY: meta?.nameOffsetY !== undefined ? meta.nameOffsetY : -40
+        visible: meta?.visible !== undefined ? meta.visible : true
       };
     });
     starGroups = newStarGroups;
-  }
-
-  function ensureGroupNameOffset(group) {
-    if (group.nameOffsetX === undefined) group.nameOffsetX = 0;
-    if (group.nameOffsetY === undefined) group.nameOffsetY = -40;
   }
 
   function draw() {
     ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
     ctx.clearRect((-offsetX) / scale, (-offsetY) / scale, canvas.width / scale, canvas.height / scale);
     buildGroups();
+    // Draw connections in default white
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,0.3)";
     ctx.lineWidth = 1.5;
@@ -368,7 +361,7 @@
       const minY = Math.min(...ys), maxY = Math.max(...ys);
       const centerX = (minX + maxX) / 2;
       const topY = minY;
-      ensureGroupNameOffset(group);
+      const nameOffset = 40;
       ctx.save();
       ctx.font = "bold 19px Arial";
       ctx.fillStyle = group.color || "#FFD700";
@@ -377,11 +370,7 @@
       ctx.shadowColor = "#000";
       ctx.shadowBlur = 8;
       ctx.globalAlpha = 0.97;
-      ctx.fillText(
-        group.name,
-        centerX + (group.nameOffsetX || 0),
-        topY + (group.nameOffsetY !== undefined ? group.nameOffsetY : -40)
-      );
+      ctx.fillText(group.name, centerX, topY - nameOffset);
       ctx.restore();
     });
   }
@@ -409,6 +398,7 @@
   }
 
   function resetStars() {
+    // Password prompt
     const pw = prompt("Masukkan password untuk reset:");
     if (pw !== "supernenechi123") {
       alert("Password salah!");
@@ -420,7 +410,6 @@
     selectedStar = null;
     firstStar = null;
     connectMode = false;
-    moveGroupNameMode = false;
     hideContextMenu();
     saveToFirebase();
     draw();
@@ -435,6 +424,7 @@
   }
 
   function updateColorChoiceUI() {
+    // Set border on selected color
     if (contextGroupIdx == null || !starGroups[contextGroupIdx]) return;
     const selColor = (starGroups[contextGroupIdx].color || "#FFD700").toLowerCase();
     colorBtns.forEach(btn => {
@@ -455,10 +445,8 @@
     if (contextGroupIdx !== null && contextGroupIdx !== undefined && starGroups[contextGroupIdx]) {
       toggleGroupNameBtn.textContent = starGroups[contextGroupIdx].visible ? "👁️ Sembunyikan Nama Grup" : "👁️ Tampilkan Nama Grup";
       color = starGroups[contextGroupIdx].color || "#FFD700";
-      moveGroupNameBtn.disabled = !starGroups[contextGroupIdx].name;
     } else {
       toggleGroupNameBtn.textContent = "👁️ Nama Grup";
-      moveGroupNameBtn.disabled = true;
     }
     updateColorChoiceUI();
     contextMenu.style.left = x + "px";
@@ -604,25 +592,14 @@
     }
   });
 
-  function showMessageBox(msg) {
-    messageBox.textContent = msg;
-    messageBox.style.left = "50%";
-    messageBox.style.top = "12%";
-    messageBox.style.transform = "translate(-50%, 0)";
-    messageBox.style.display = "block";
-    setTimeout(() => { messageBox.style.display = "none"; }, 2500);
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
   }
-
-  function startMoveGroupName() {
-    moveGroupNameMode = true;
-    hideContextMenu();
-    showMessageBox("Silakan klik/tap posisi baru untuk nama grup.");
-  }
-
-  function ensureGroupNameOffset(group) {
-    if (group.nameOffsetX === undefined) group.nameOffsetX = 0;
-    if (group.nameOffsetY === undefined) group.nameOffsetY = -40;
-  }
+  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("orientationchange", resizeCanvas);
+  resizeCanvas();
 
   // Universal double tap/click menu for star/group (cross device)
   let pointerDownTime = 0;
@@ -652,38 +629,18 @@
     handleMenu(e, x, y);
   });
 
-  // Mobile & universal: double tap/tap-hold & moveGroupNameMode support
+  // Mobile & universal: double tap/tap-hold
   let lastTap = 0;
   let tapTimeout;
   canvas.addEventListener("pointerdown", (e) => {
-    if (moveGroupNameMode && contextGroupIdx != null && starGroups[contextGroupIdx]) {
-      const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-      let xs = [], ys = [];
-      starGroups[contextGroupIdx].starIndices.forEach(i => {
-        xs.push(stars[i].x);
-        ys.push(stars[i].y);
-      });
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minY = Math.min(...ys), maxY = Math.max(...ys);
-      const centerX = (minX + maxX) / 2;
-      const topY = minY;
-      starGroups[contextGroupIdx].nameOffsetX = x - centerX;
-      starGroups[contextGroupIdx].nameOffsetY = y - topY;
-      saveToFirebase();
-      draw();
-      moveGroupNameMode = false;
-      contextGroupIdx = null;
-      messageBox.style.display = "none";
-      return;
-    }
-
-    pointerDownTime = Date.now();
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
+    pointerDownTime = Date.now();
     pointerDownX = x;
     pointerDownY = y;
     pointerDownStarIdx = findStarAt(x, y);
     pointerDownGroupIdx = pointerDownStarIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(pointerDownStarIdx);
 
+    // Connection mode
     if (connectMode && firstStar != null && pointerDownStarIdx >= 0 && pointerDownStarIdx !== firstStar) {
       connections.push([firstStar, pointerDownStarIdx]);
       stars[firstStar].highlighted = false;
@@ -704,6 +661,7 @@
       tapTimeout = setTimeout(() => { lastTap = 0; }, 400);
     }
 
+    // Tap & hold for menu (longpress, useful for mobile)
     tapTimeout = setTimeout(() => {
       handleMenu(e, x, y);
       lastTap = 0;
@@ -788,6 +746,7 @@
     isDragging = false;
   });
 
+  // Set up color button events
   colorBtns.forEach(btn => {
     btn.addEventListener("click", e => {
       setGroupColor(btn.getAttribute("data-color"));
@@ -808,7 +767,6 @@
   window.removeGroupName = removeGroupName;
   window.toggleGroupNameVisibility = toggleGroupNameVisibility;
   window.toggleControls = toggleControls;
-  window.startMoveGroupName = startMoveGroupName;
 
   function toCanvasCoords(x, y) {
     return {
