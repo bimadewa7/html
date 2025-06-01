@@ -348,7 +348,7 @@
       ctx.fill();
       ctx.restore();
     });
-    // ====== MODIFIKASI DI SINI: Nama grup di bawah ======
+    // Nama grup di bawah
     starGroups.forEach((group, idx) => {
       if (!group.visible || !group.name || group.starIndices.length < 2) return;
       let xs = [], ys = [];
@@ -372,7 +372,6 @@
       ctx.fillText(group.name, centerX, bottomY + nameOffset);
       ctx.restore();
     });
-    // ====================================================
   }
 
   function saveToFirebase() {
@@ -599,19 +598,20 @@
   window.addEventListener("orientationchange", resizeCanvas);
   resizeCanvas();
 
-  // Universal double tap/click menu for star/group (cross device)
+  // Double tap/click menu for star/group (cross device)
   let pointerDownTime = 0;
   let pointerDownX = 0, pointerDownY = 0;
   let pointerDownStarIdx = null, pointerDownGroupIdx = null;
 
-  function handleMenu(e, x, y) {
+  function handleMenu(e, x, y, isDoubleTap = false) {
     const starIdx = findStarAt(x, y);
     const groupIdx = starIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(starIdx);
     if (starIdx >= 0) {
       showContextMenu(e.clientX, e.clientY, starIdx, groupIdx);
     } else if (groupIdx != null) {
       showContextMenu(e.clientX, e.clientY, null, groupIdx);
-    } else {
+    } else if (isDoubleTap) {
+      // Hanya boleh tambah bintang jika double tap/double click
       const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
       if (msg !== null) {
         stars.push({ x, y, message: msg });
@@ -624,7 +624,7 @@
   // Desktop: double click
   canvas.addEventListener("dblclick", (e) => {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    handleMenu(e, x, y);
+    handleMenu(e, x, y, true);
   });
 
   // Mobile & universal: double tap/tap-hold
@@ -652,7 +652,7 @@
     clearTimeout(tapTimeout);
     const now = Date.now();
     if (now - lastTap < 350) {
-      handleMenu(e, x, y);
+      handleMenu(e, x, y, true); // double tap = tambah bintang
       lastTap = 0;
     } else {
       lastTap = now;
@@ -661,7 +661,7 @@
 
     // Tap & hold for menu (longpress, useful for mobile)
     tapTimeout = setTimeout(() => {
-      handleMenu(e, x, y);
+      handleMenu(e, x, y, false); // longpress, jangan tambah bintang!
       lastTap = 0;
     }, 500);
   });
