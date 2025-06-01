@@ -101,6 +101,12 @@ const db = getDatabase(app);
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
+// Background size & min zoom
+let bgWidth = 2400, bgHeight = 1600;
+const MIN_SCALE = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
+const MAX_SCALE = 5;
+
+// Data
 let stars = [];
 let connections = [];
 let showNames = false;
@@ -112,7 +118,8 @@ const messageBox = document.getElementById("messageBox");
 const starMenu = document.getElementById("starMenu");
 const starInfo = document.getElementById("starInfo");
 
-let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
+// Zoom & pan
+let scale = MIN_SCALE, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
 
 window.toggleConstellationNames = function() {
   if (!showNames && !showMessages) {
@@ -129,7 +136,7 @@ window.toggleConstellationNames = function() {
 };
 
 function draw() {
-  // Background sesuai awal: hanya gradient body, tanpa bintik
+  // ======= BACKGROUND: hanya gradient (tanpa bintik) =======
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -202,6 +209,10 @@ function resizeCanvas() {
   canvas.style.height = window.innerHeight + "px";
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
+
+  // Atur minimal zoom agar background selalu menutupi layar
+  scale = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
+  offsetX = 0; offsetY = 0;
   draw();
 }
 window.addEventListener("resize", resizeCanvas);
@@ -475,9 +486,7 @@ canvas.addEventListener("wheel", (e) => {
   const mouse = toCanvasCoords(e.clientX, e.clientY);
   const zoom = e.deltaY < 0 ? 1.1 : 0.9;
   scale *= zoom;
-  const MIN_SCALE = 0.3, MAX_SCALE = 5;
-  if (scale < MIN_SCALE) scale = MIN_SCALE;
-  if (scale > MAX_SCALE) scale = MAX_SCALE;
+  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
   offsetX = e.clientX - (mouse.x * scale);
   offsetY = e.clientY - (mouse.y * scale);
   draw();
@@ -495,9 +504,7 @@ canvas.addEventListener("touchmove", (e) => {
       const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const center = toCanvasCoords(centerX, centerY);
       scale *= zoom;
-      const MIN_SCALE = 0.3, MAX_SCALE = 5;
-      if (scale < MIN_SCALE) scale = MIN_SCALE;
-      if (scale > MAX_SCALE) scale = MAX_SCALE;
+      scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
       offsetX = centerX - (center.x * scale);
       offsetY = centerY - (center.y * scale);
       draw();
