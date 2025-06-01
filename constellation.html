@@ -226,6 +226,10 @@
 <div id="controls" class="hide-controls" style="opacity:0;pointer-events:none;">
   <button class="close-controls-btn" onclick="toggleControls()" title="Tutup Menu">&#10005;</button>
   <div>✨ 2x Tap/Klik untuk menambah/mengelola bintang<br>🔗 Sambung bintang dengan mode sambung</div>
+  <div style="display:flex;gap:8px;">
+    <button onclick="zoomIn()">➕ Zoom In</button>
+    <button onclick="zoomOut()">➖ Zoom Out</button>
+  </div>
   <button onclick="resetStars()">🔄 Reset Semua</button>
   <hr style="border:1px solid #222">
 </div>
@@ -278,6 +282,18 @@
   let isDragging = false;
   let lastX = 0;
   let lastY = 0;
+
+  // Fungsi zoom manual
+  window.zoomIn = function() {
+    scale *= 1.15;
+    scale = Math.min(scale, 4);
+    draw();
+  }
+  window.zoomOut = function() {
+    scale /= 1.15;
+    scale = Math.max(scale, 0.5);
+    draw();
+  }
 
   function buildGroups() {
     const visited = new Array(stars.length).fill(false);
@@ -691,16 +707,19 @@
     }
   });
 
+  // Event wheel (desktop)
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const mouse = toCanvasCoords(e.clientX, e.clientY);
     const zoom = e.deltaY < 0 ? 1.1 : 0.9;
     scale *= zoom;
+    scale = Math.max(0.5, Math.min(scale, 4)); // batas zoom
     offsetX = e.clientX - (mouse.x * scale);
     offsetY = e.clientY - (mouse.y * scale);
     draw();
   }, { passive: false });
 
+  // Pinch to zoom (mobile)
   let lastDist = null;
   canvas.addEventListener("touchmove", (e) => {
     if (e.touches.length === 2) {
@@ -713,6 +732,7 @@
         const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         const center = toCanvasCoords(centerX, centerY);
         scale *= zoom;
+        scale = Math.max(0.5, Math.min(scale, 4)); // batas zoom
         offsetX = centerX - (center.x * scale);
         offsetY = centerY - (center.y * scale);
         draw();
