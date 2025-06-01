@@ -101,23 +101,6 @@ const db = getDatabase(app);
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
-// Set background (stars) size, and min zoom out
-let bgWidth = 2400, bgHeight = 1600;
-const BG_STAR_COUNT = 100;
-let bgStars = [];
-function genBgStars() {
-  const dpr = window.devicePixelRatio || 1;
-  bgStars = [];
-  for (let i = 0; i < BG_STAR_COUNT; ++i) {
-    bgStars.push({
-      x: Math.random() * bgWidth,
-      y: Math.random() * bgHeight,
-      r: (Math.random() * 1.3 + 0.7) * dpr
-    });
-  }
-}
-genBgStars();
-
 let stars = [];
 let connections = [];
 let showNames = false;
@@ -129,10 +112,7 @@ const messageBox = document.getElementById("messageBox");
 const starMenu = document.getElementById("starMenu");
 const starInfo = document.getElementById("starInfo");
 
-// Zoom & pan
 let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
-const MIN_SCALE = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight); // biar background selalu menutupi layar
-const MAX_SCALE = 5;
 
 window.toggleConstellationNames = function() {
   if (!showNames && !showMessages) {
@@ -149,21 +129,9 @@ window.toggleConstellationNames = function() {
 };
 
 function draw() {
-  // ======= CANVAS HI-DPI FIX (RETINA, MOBILE) =======
+  // Background sesuai awal: hanya gradient body, tanpa bintik
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Background bintik bintang kecil mengikuti zoom/pan
-  ctx.save();
-  ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-  ctx.globalAlpha = 0.75;
-  ctx.fillStyle = "#fff";
-  bgStars.forEach(star => {
-    ctx.beginPath();
-    ctx.arc(star.x, star.y, star.r, 0, Math.PI*2);
-    ctx.fill();
-  });
-  ctx.restore();
 
   // Semua objek utama di-zoom/pan
   ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
@@ -234,11 +202,6 @@ function resizeCanvas() {
   canvas.style.height = window.innerHeight + "px";
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
-
-  // Atur ulang minimal zoom agar background selalu menutupi layar
-  // Skala minimal = layar / background
-  scale = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
-  offsetX = 0; offsetY = 0;
   draw();
 }
 window.addEventListener("resize", resizeCanvas);
@@ -275,7 +238,6 @@ function resetStars() {
   rasiGroups = [];
   firstStar = null;
   hideStarMenu();
-  genBgStars();
   saveToFirebase();
   draw();
 }
@@ -513,8 +475,9 @@ canvas.addEventListener("wheel", (e) => {
   const mouse = toCanvasCoords(e.clientX, e.clientY);
   const zoom = e.deltaY < 0 ? 1.1 : 0.9;
   scale *= zoom;
-  // Batasi zoom agar background tidak "kekecilan" (selalu menutupi layar)
-  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+  const MIN_SCALE = 0.3, MAX_SCALE = 5;
+  if (scale < MIN_SCALE) scale = MIN_SCALE;
+  if (scale > MAX_SCALE) scale = MAX_SCALE;
   offsetX = e.clientX - (mouse.x * scale);
   offsetY = e.clientY - (mouse.y * scale);
   draw();
@@ -532,7 +495,9 @@ canvas.addEventListener("touchmove", (e) => {
       const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const center = toCanvasCoords(centerX, centerY);
       scale *= zoom;
-      scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+      const MIN_SCALE = 0.3, MAX_SCALE = 5;
+      if (scale < MIN_SCALE) scale = MIN_SCALE;
+      if (scale > MAX_SCALE) scale = MAX_SCALE;
       offsetX = centerX - (center.x * scale);
       offsetY = centerY - (center.y * scale);
       draw();
