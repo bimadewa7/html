@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Constellation Creator 🌟</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+      font-family: Arial, sans-serif;
+      color: white;
+      touch-action: manipulation;
+    }
+
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+
+    #messageBox, #contextMenu {
+      position: absolute;
+      background: rgba(255,255,255,0.95);
+      color: #000;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 14px;
+      display: none;
+      z-index: 10;
+    }
+
+    #contextMenu button {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 6px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    #contextMenu button:hover {
+      background: #f0f0f0;
+    }
+
+    #closeBtn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #ff5555;
+      color: white;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      font-size: 18px;
+      cursor: pointer;
+      text-align: center;
+      line-height: 25px;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 8px;
+      z-index: 5;
+    }
+
+    button {
+      background: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      margin: 4px 0;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ffcccb;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="sky"></canvas>
+<div id="messageBox"></div>
+<div id="contextMenu">
+  <button onclick="editSelectedStar()">✏️ Edit Pesan</button>
+  <button onclick="deleteSelectedStar()">🗑️ Hapus Bintang</button>
+  <button onclick="exitConnectionMode()">🚪 Keluar dari Sambungan</button>
+</div>
+<div id="controls">
+  ✨ Double tap untuk tambah bintang<br>
+  🌟 Tap dua bintang untuk sambung<br>
+  ❌ Tap lama / klik kanan = Edit / Hapus<br>
+  <button onclick="resetStars()">🔄 Reset Semua</button>
+</div>
+
+<!-- Firebase SDK (compat version for namespaced syntax) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<script>
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
+    authDomain: "constellation-b1844.firebaseapp.com",
+    databaseURL: "https://constellation-b1844-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "constellation-b1844",
+    storageBucket: "constellation-b1844.firebasestorage.app",
+    messagingSenderId: "31660084862",
+    appId: "1:31660084862:web:0c2f9301819de7a540922f",
+    measurementId: "G-ZFYHDD1EY0"
+  };
+
+  // Initialize Firebase (compat version)
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const canvas = document.getElementById("sky");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  let stars = [];
+  let connections = [];
+  let selectedStar = null;
+  let contextStar = null;
+  let isInConnectionMode = false;
+  let lastTapTime = 0;
+
+  const messageBox = document.getElementById("messageBox");
+  const contextMenu = document.getElementById("contextMenu");
+  const closeBtn = document.createElement('div');
+  closeBtn.id = 'closeBtn';
+  closeBtn.textContent = 'X';
+  contextMenu.appendChild(closeBtn);
+
+  // Function to draw stars and connections
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw connections
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.lineWidth = 1.5;
+    connections.forEach(([a, b]) => {
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    });
+
+    // Draw stars
+    stars.forEach(star => {
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "white";
+      ctx.fill();
+    });
+  }
+
+  // Function to save stars and connections to Firebase
+  function saveToFirebase() {
+    const data = {
+      stars: stars.map(s => ({ x: s.x, y: s.y, message: s.message })),
+      connections: connections.map(([a, b]) => [stars.indexOf(a), stars.indexOf(b)])
+    };
+    db.ref("constellations").set(data);
+  }
+
+  // Function to load stars and connections from Firebase
+  function loadFromFirebase() {
+    db.ref("constellations").once("value", (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        stars = data.stars.map(s => ({ ...s }));
+        connections = data.connections.map(([i1, i2]) => [stars[i1], stars[i2]]);
+        draw();
+      }
+    });
+  }
+
+  function resetStars() {
+    stars = [];
+    connections = [];
+    selectedStar = null;
+    hideContextMenu();
+    saveToFirebase();
+    draw();
+  }
+
+  function showMessage(star, x, y) {
+    if (star.message) {
+      messageBox.textContent = star.message;
+      messageBox.style.left = x + 15 + "px";
+      messageBox.style.top = y + 15 + "px";
+      messageBox.style.display = "block";
+    }
+  }
+
+  function hideMessage() {
+    messageBox.style.display = "none";
+  }
+
+  function showContextMenu(x, y, star) {
+    contextStar = star;
+    contextMenu.style.left = x + "px";
+    contextMenu.style.top = y + "px";
+    contextMenu.style.display = "block";
+  }
+
+  function hideContextMenu() {
+    contextMenu.style.display = "none";
+    contextStar = null;
+  }
+
+  function editSelectedStar() {
+    if (contextStar) {
+      const newMsg = prompt("Ubah pesan:", contextStar.message || "");
+      if (newMsg !== null) contextStar.message = newMsg;
+    }
+    hideContextMenu();
+    saveToFirebase();
+    draw();
+  }
+
+  function deleteSelectedStar() {
+    if (contextStar) {
+      const index = stars.indexOf(contextStar);
+      if (index !== -1) stars.splice(index, 1);
+      connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
+    }
+    hideContextMenu();
+    saveToFirebase();
+    draw();
+  }
+
+  function findStarAt(x, y) {
+    return stars.find(star => Math.hypot(star.x - x, star.y - y) < 10);
+  }
+
+  let holdTimeout;
+
+  canvas.addEventListener("pointerdown", (e) => {
+    const x = e.clientX;
+    const y = e.clientY;
+    const clickedStar = findStarAt(x, y);
+
+    if (isInConnectionMode) {
+      if (clickedStar && clickedStar !== selectedStar) {
+        connections.push([selectedStar, clickedStar]);
+        saveToFirebase();
+        isInConnectionMode = false;  // Exit connection mode after connecting
+        selectedStar = null;
+        draw();
+      }
+      return;
+    }
+
+    holdTimeout = setTimeout(() => {
+      if (clickedStar) showContextMenu(x, y, clickedStar);
+    }, 600);
+  });
+
+  canvas.addEventListener("pointerup", (e) => {
+    clearTimeout(holdTimeout);
+
+    const x = e.clientX;
+    const y = e.clientY;
+    const clickedStar = findStarAt(x, y);
+    const now = Date.now();
+
+    if (!clickedStar && now - lastTapTime < 400) {
+      const msg = prompt("Pesan untuk bintang ini:");
+      if (msg !== null) {
+        stars.push({ x, y, message: msg });
+        saveToFirebase();
+        draw();
+      }
+    } else if (clickedStar) {
+      if (now - lastTapTime < 400) {
+        if (selectedStar === clickedStar) {
+          isInConnectionMode = true;
+          selectedStar = clickedStar; // Start connection mode
+        }
+      } else {
+        selectedStar = clickedStar;
+      }
+    }
+
+    lastTapTime = now;
+  });
+
+  // Exit connection mode when the button is clicked
+  function exitConnectionMode() {
+    isInConnectionMode = false;
+    selectedStar = null;
+    draw();
+    hideContextMenu();
+  }
+
+  // Close context menu when the close button is clicked
+  closeBtn.addEventListener('click', () => {
+    hideContextMenu();
+  });
+
+  // Load previous data from Firebase
+  loadFromFirebase();
+  draw();
+
+</script>
+
+</body>
+</html>
