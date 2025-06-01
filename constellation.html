@@ -155,8 +155,6 @@
 <div id="controls">
   ✨ 2x Tap untuk menambah/mengelola bintang<br>
   <button onclick="resetStars()">🔄 Reset Semua</button>
-  <button onclick="showAllConstellationNames()">👁️ Show All Nama Rasi</button>
-  <button onclick="hideAllConstellationNames()">🙈 Hide Nama Rasi</button>
   <hr style="border:1px solid #222">
   <button onclick="toggleConstellationName()" id="toggleNameBtn">👁️ Sembunyikan Nama Rasi</button>
   <button onclick="toggleControls()" id="toggleControlsBtn">⬅️ Sembunyikan Menu</button>
@@ -424,19 +422,6 @@
     controls.classList.toggle("hide-controls");
     toggleControlsBtn.textContent = controls.classList.contains("hide-controls") ? "➡️ Tampilkan Menu" : "⬅️ Sembunyikan Menu";
   }
-  // Show all/hide all nama rasi
-  function showAllConstellationNames() {
-    constellation.visible = true;
-    updateToggleNameBtn();
-    draw();
-    saveToFirebase();
-  }
-  function hideAllConstellationNames() {
-    constellation.visible = false;
-    updateToggleNameBtn();
-    draw();
-    saveToFirebase();
-  }
 
   // -- Event: Double tap/klik untuk menu/menambah bintang
   let lastTap = 0;
@@ -524,7 +509,7 @@
   // Load data dari Firebase saat awal
   loadFromFirebase();
 
-  // Pan/zoom/dll (sama seperti kode lama Anda)
+  // Pan/zoom/dll
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const mouse = toCanvasCoords(e.clientX, e.clientY);
@@ -590,8 +575,6 @@
   window.changeConstellationColor = changeConstellationColor;
   window.toggleConstellationName = toggleConstellationName;
   window.toggleControls = toggleControls;
-  window.showAllConstellationNames = showAllConstellationNames;
-  window.hideAllConstellationNames = hideAllConstellationNames;
 
   // Konversi ke koordinat canvas
   function toCanvasCoords(x, y) {
