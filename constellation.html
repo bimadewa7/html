@@ -182,20 +182,38 @@
 </div>
 <div id="starInfo"></div>
 <script type="module">
-const canvas = document.getElementById("sky");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
+  authDomain: "constellation-b1844.firebaseapp.com",
+  databaseURL: "https://constellation-b1844-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "constellation-b1844",
+  storageBucket: "constellation-b1844.appspot.com",
+  messagingSenderId: "31660084862",
+  appId: "1:31660084862:web:0c2f9301819de7a540922f",
+  measurementId: "G-ZFYHDD1EY0"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Data utama
 let stars = []; // {x, y, message}
 let connections = []; // [indexA, indexB]
 let groupData = []; // [{name, color, visible:true}]
-let cachedGroups = null; // agar tidak hitung ulang terus
+let cachedGroups = null;
 
 let selectedStar = null;
 let firstStar = null;
 let contextStar = null;
 let contextGroupIdx = null;
+
+const canvas = document.getElementById("sky");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 const messageBox = document.getElementById("messageBox");
 const contextMenu = document.getElementById("contextMenu");
@@ -206,17 +224,37 @@ const menuToggleBtn = document.getElementById("menuToggleBtn");
 const starInfo = document.getElementById("starInfo");
 const toggleNamesBtn = document.getElementById("toggleNamesBtn");
 
-function toggleControls() {
-  if (controls.style.display === "none" || controls.style.display === "") {
-    controls.style.display = "block";
-    menuToggleBtn.innerHTML = "&times;";
-  } else {
-    controls.style.display = "none";
-    menuToggleBtn.innerHTML = "&#9776;";
+// --- Firebase Load/Save ---
+async function loadRasi() {
+  try {
+    const snapshot = await get(ref(db, "rasi"));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      stars = data.stars || [];
+      connections = data.connections || [];
+      groupData = data.groupData || [];
+      cachedGroups = null;
+      draw();
+    } else {
+      stars = [];
+      connections = [];
+      groupData = [];
+      cachedGroups = null;
+      draw();
+    }
+  } catch (e) {
+    alert("Gagal load dari Firebase: " + e.message);
   }
 }
-controls.style.display = "none";
-menuToggleBtn.innerHTML = "&#9776;";
+async function saveRasi() {
+  try {
+    await set(ref(db, "rasi"), { stars, connections, groupData });
+  } catch (e) {
+    alert("Gagal simpan ke Firebase: " + e.message);
+  }
+}
+window.loadRasi = loadRasi;
+window.saveRasi = saveRasi;
 
 // --- Grup/rasi detection ---
 function detectGroups() {
@@ -322,6 +360,7 @@ function toggleAllConstellationNames() {
   let anyVisible = groupData.some(g => g.visible !== false);
   groupData.forEach(g => g.visible = !anyVisible);
   draw();
+  saveRasi();
   updateToggleNamesBtn();
 }
 function updateToggleNamesBtn() {
@@ -338,6 +377,7 @@ function resetStars() {
   cachedGroups = null;
   hideContextMenu();
   draw();
+  saveRasi();
   updateToggleNamesBtn();
 }
 
@@ -362,11 +402,13 @@ function hideContextMenu() {
   contextStar = null;
   contextGroupIdx = null;
 }
+window.hideContextMenu = hideContextMenu;
 function editSelectedStar() {
   if (contextStar !== null) {
     const newMsg = prompt("Ubah pesan:", stars[contextStar].message || "");
     if (newMsg !== null) stars[contextStar].message = newMsg;
     draw();
+    saveRasi();
   }
   hideContextMenu();
 }
@@ -381,6 +423,7 @@ function deleteSelectedStar() {
       ]);
     cachedGroups = null;
     draw();
+    saveRasi();
   }
   hideContextMenu();
 }
@@ -399,6 +442,7 @@ function deleteConnectionsOfStar() {
     connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
     cachedGroups = null;
     draw();
+    saveRasi();
   }
   hideContextMenu();
 }
@@ -408,6 +452,7 @@ function promptConstellationName() {
     if (name !== null) {
       groupData[contextGroupIdx].name = name;
       draw();
+      saveRasi();
     }
   }
   hideContextMenu();
@@ -418,6 +463,7 @@ function removeConstellationName() {
       if (confirm("Hapus nama rasi?")) {
         groupData[contextGroupIdx].name = "";
         draw();
+        saveRasi();
       }
     }
   }
@@ -429,6 +475,7 @@ function changeConstellationColor() {
     if (color && /^#([0-9a-fA-F]{3}){1,2}$/.test(color)) {
       groupData[contextGroupIdx].color = color;
       draw();
+      saveRasi();
     } else if (color) {
       alert("Format warna tidak valid. Gunakan hex seperti #FFD700");
     }
@@ -439,6 +486,7 @@ function toggleConstellationName() {
   if (contextGroupIdx !== null) {
     groupData[contextGroupIdx].visible = !groupData[contextGroupIdx].visible;
     draw();
+    saveRasi();
   }
   hideContextMenu();
 }
@@ -470,6 +518,7 @@ canvas.addEventListener("pointerdown", (e) => {
       if (msg !== null) {
         stars.push({ x, y, message: msg });
         draw();
+        saveRasi();
       }
     }
     lastTap = 0;
@@ -490,15 +539,19 @@ canvas.addEventListener("dblclick", (e) => {
     if (g1 === null && g2 === null) {
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
+      saveRasi();
     } else if (g1 !== null && g2 === null) {
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
+      saveRasi();
     } else if (g1 === null && g2 !== null) {
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
+      saveRasi();
     } else if (g1 === g2) {
       connections.push([firstStar, starIdx]);
       cachedGroups = null;
+      saveRasi();
     } else {
       alert("Tidak bisa menghubungkan dua bintang dari grup/rasi berbeda.");
     }
@@ -538,6 +591,18 @@ canvas.addEventListener("pointermove", (e) => {
   }
 });
 
+function toggleControls() {
+  if (controls.style.display === "none" || controls.style.display === "") {
+    controls.style.display = "block";
+    menuToggleBtn.innerHTML = "&times;";
+  } else {
+    controls.style.display = "none";
+    menuToggleBtn.innerHTML = "&#9776;";
+  }
+}
+controls.style.display = "none";
+menuToggleBtn.innerHTML = "&#9776;";
+
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -547,6 +612,7 @@ window.addEventListener("resize", resizeCanvas);
 window.addEventListener("orientationchange", resizeCanvas);
 resizeCanvas();
 
+// Ekspos fungsi ke global window agar bisa dipanggil dari HTML
 window.deleteConnectionsOfStar = deleteConnectionsOfStar;
 window.editSelectedStar = editSelectedStar;
 window.deleteSelectedStar = deleteSelectedStar;
@@ -558,6 +624,10 @@ window.changeConstellationColor = changeConstellationColor;
 window.toggleConstellationName = toggleConstellationName;
 window.toggleAllConstellationNames = toggleAllConstellationNames;
 window.toggleControls = toggleControls;
+
+// Auto load saat halaman dibuka
+window.addEventListener("DOMContentLoaded", loadRasi);
+
 </script>
 </body>
 </html>
