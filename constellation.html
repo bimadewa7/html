@@ -225,7 +225,7 @@
 </button>
 <div id="controls" class="hide-controls" style="opacity:0;pointer-events:none;">
   <button class="close-controls-btn" onclick="toggleControls()" title="Tutup Menu">&#10005;</button>
-  <div>✨ 2x Tap/Klik untuk menambah/mengelola bintang<br>🔗 Sambung bintang dengan mode sambung</div>
+  <div>✨ 3x Tap/Klik untuk menambah/mengelola bintang<br>🔗 Sambung bintang dengan mode sambung</div>
   <div style="display:flex;gap:8px;">
     <button onclick="zoomIn()">➕ Zoom In</button>
     <button onclick="zoomOut()">➖ Zoom Out</button>
@@ -614,20 +614,23 @@
   window.addEventListener("orientationchange", resizeCanvas);
   resizeCanvas();
 
-  // Double tap/click menu for star/group (cross device)
+  // Triple-tap/click logic
+  let tapTimes = [];
+  let tapTimeout;
+  let lastTapXY = { x: null, y: null };
   let pointerDownTime = 0;
   let pointerDownX = 0, pointerDownY = 0;
   let pointerDownStarIdx = null, pointerDownGroupIdx = null;
 
-  function handleMenu(e, x, y, isDoubleTap = false) {
+  function handleMenu(e, x, y, isAddStar = false) {
     const starIdx = findStarAt(x, y);
     const groupIdx = starIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(starIdx);
     if (starIdx >= 0) {
       showContextMenu(e.clientX, e.clientY, starIdx, groupIdx);
     } else if (groupIdx != null) {
       showContextMenu(e.clientX, e.clientY, null, groupIdx);
-    } else if (isDoubleTap) {
-      // Hanya boleh tambah bintang jika double tap/double click
+    } else if (isAddStar) {
+      // Tambah bintang jika triple tap/click
       const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
       if (msg !== null) {
         stars.push({ x, y, message: msg });
@@ -637,54 +640,52 @@
     }
   }
 
-  // Desktop: double click
-  canvas.addEventListener("dblclick", (e) => {
+  // Desktop: triple click (or triple tap)
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    handleMenu(e, x, y, true);
+    processTap(e, x, y);
+  });
+  canvas.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
+    processTap(e, x, y);
   });
 
-  // Mobile & universal: double tap/tap-hold
-  let lastTap = 0;
-  let tapTimeout;
-  canvas.addEventListener("pointerdown", (e) => {
-    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    pointerDownTime = Date.now();
-    pointerDownX = x;
-    pointerDownY = y;
-    pointerDownStarIdx = findStarAt(x, y);
-    pointerDownGroupIdx = pointerDownStarIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(pointerDownStarIdx);
-
+  function processTap(e, x, y) {
     // Connection mode
-    if (connectMode && firstStar != null && pointerDownStarIdx >= 0 && pointerDownStarIdx !== firstStar) {
-      connections.push([firstStar, pointerDownStarIdx]);
+    let starIdx = findStarAt(x, y);
+    if (connectMode && firstStar != null && starIdx >= 0 && starIdx !== firstStar) {
+      connections.push([firstStar, starIdx]);
       stars[firstStar].highlighted = false;
       firstStar = null;
       connectMode = false;
       saveToFirebase();
       draw();
+      tapTimes = [];
       return;
     }
-
+    // Tap logic
+    tapTimes.push(Date.now());
+    lastTapXY = { x, y };
     clearTimeout(tapTimeout);
-    const now = Date.now();
-    if (now - lastTap < 350) {
-      handleMenu(e, x, y, true); // double tap = tambah bintang
-      lastTap = 0;
+    if (tapTimes.length === 3 && (tapTimes[2] - tapTimes[0]) < 800) {
+      handleMenu(e, x, y, true);
+      tapTimes = [];
+    } else if (tapTimes.length > 3) {
+      tapTimes = [tapTimes[tapTimes.length - 1]]; // keep only last tap
     } else {
-      lastTap = now;
-      tapTimeout = setTimeout(() => { lastTap = 0; }, 400);
+      tapTimeout = setTimeout(() => {
+        // longpress menu for star/group
+        if (tapTimes.length === 1) {
+          handleMenu(e, x, y, false);
+        }
+        tapTimes = [];
+      }, 500);
     }
+  }
 
-    // Tap & hold for menu (longpress, useful for mobile)
-    tapTimeout = setTimeout(() => {
-      handleMenu(e, x, y, false); // longpress, jangan tambah bintang!
-      lastTap = 0;
-    }, 500);
-  });
-  canvas.addEventListener("pointerup", () => {
-    clearTimeout(tapTimeout);
-  });
-
+  // Pointer move for info
   canvas.addEventListener("pointermove", (e) => {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
     const starIdx = findStarAt(x, y);
@@ -719,30 +720,7 @@
     draw();
   }, { passive: false });
 
-  // Pinch to zoom (mobile)
-  let lastDist = null;
-  canvas.addEventListener("touchmove", (e) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (lastDist) {
-        const zoom = dist / lastDist;
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const center = toCanvasCoords(centerX, centerY);
-        scale *= zoom;
-        scale = Math.max(0.5, Math.min(scale, 4)); // batas zoom
-        offsetX = centerX - (center.x * scale);
-        offsetY = centerY - (center.y * scale);
-        draw();
-      }
-      lastDist = dist;
-    }
-  });
-  canvas.addEventListener("touchend", (e) => {
-    if (e.touches.length < 2) lastDist = null;
-  });
+  // REMOVE pinch to zoom (mobile) --- code deleted ---
 
   canvas.addEventListener("pointerdown", (e) => {
     if (e.button === 1 || (e.pointerType === "touch" && findStarAt(...Object.values(toCanvasCoords(e.clientX, e.clientY))) < 0)) {
