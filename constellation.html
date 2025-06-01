@@ -110,8 +110,10 @@ const db = getDatabase(app);
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
-// Responsive background size: same aspect ratio as screen
-let bgWidth = 2400, bgHeight = 1600; // initial fallback
+// Responsive background size: aspect ratio always follows screen
+let bgWidth = 2400, bgHeight = 1600;
+let MIN_SCALE = 1, MAX_SCALE = 5;
+
 let stars = [];
 let connections = [];
 let showNames = false;
@@ -124,9 +126,6 @@ const starMenu = document.getElementById("starMenu");
 const starInfo = document.getElementById("starInfo");
 
 let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
-let MIN_SCALE = 1, MAX_SCALE = 5;
-
-// No background dots (bintik) in this version
 
 window.toggleConstellationNames = function() {
   if (!showNames && !showMessages) {
@@ -143,7 +142,6 @@ window.toggleConstellationNames = function() {
 };
 
 function draw() {
-  // Only gradient background (no dots)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -221,8 +219,11 @@ function resizeCanvas() {
   bgWidth = 2400;
   bgHeight = 2400 * (window.innerHeight / window.innerWidth);
 
-  // Batas zoom: agar background tidak gepeng dan selalu menutupi layar
-  MIN_SCALE = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
+  // Batas zoom out: 1.5x dari layar (tidak bisa lebih kecil dari ini)
+  MIN_SCALE = Math.max(
+    (window.innerWidth / bgWidth) * 1.5,
+    (window.innerHeight / bgHeight) * 1.5
+  );
   scale = MIN_SCALE;
   offsetX = 0;
   offsetY = 0;
@@ -401,12 +402,15 @@ document.getElementById("deleteRasiName").onclick = function() {
   hideStarMenu();
 };
 
-canvas.addEventListener("pointerup", (e) => {
+// DOUBLE TAP mobile FIX
+let lastTapTime = 0, lastTapStarIdx = -1, lastTapX = 0, lastTapY = 0;
+canvas.addEventListener("touchend", (e) => {
   if (firstStar) {
-    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const clickedStar = findStarAt(x, y);
-    if (clickedStar && clickedStar !== firstStar) {
-      connections.push([firstStar, clickedStar]);
+    const touch = e.changedTouches[0];
+    const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
+    const clickedIdx = findStarIdxAt(x, y);
+    if (clickedIdx !== -1 && stars[clickedIdx] !== firstStar) {
+      connections.push([firstStar, stars[clickedIdx]]);
       firstStar.highlighted = false;
       firstStar = null;
       updateRasiGroups();
@@ -414,6 +418,50 @@ canvas.addEventListener("pointerup", (e) => {
       draw();
       return;
     }
+  } else if (e.touches.length === 0) {
+    const now = Date.now();
+    const touch = e.changedTouches[0];
+    const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
+    const starIdx = findStarIdxAt(x, y);
+    // Double tap pada bintang
+    if (
+      now - lastTapTime < 400 &&
+      starIdx !== -1 &&
+      starIdx === lastTapStarIdx &&
+      Math.abs(x - lastTapX) < 20 && Math.abs(y - lastTapY) < 20
+    ) {
+      showStarMenu(touch.clientX, touch.clientY, starIdx);
+      lastTapTime = 0;
+      lastTapStarIdx = -1;
+      lastTapX = 0;
+      lastTapY = 0;
+      return;
+    }
+    // Double tap di area kosong
+    if (
+      now - lastTapTime < 400 &&
+      starIdx === -1 &&
+      lastTapStarIdx === -1 &&
+      Math.abs(x - lastTapX) < 20 && Math.abs(y - lastTapY) < 20
+    ) {
+      const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
+      if (msg !== null) {
+        stars.push({ x, y, message: msg });
+        updateRasiGroups();
+        saveToFirebase();
+        draw();
+      }
+      lastTapTime = 0;
+      lastTapStarIdx = -1;
+      lastTapX = 0;
+      lastTapY = 0;
+      return;
+    }
+    // Simpan tap
+    lastTapTime = now;
+    lastTapStarIdx = starIdx;
+    lastTapX = x;
+    lastTapY = y;
   }
 });
 
@@ -433,14 +481,13 @@ canvas.addEventListener("dblclick", (e) => {
     draw();
   }
 });
-let lastTapTime = 0;
-canvas.addEventListener("touchend", (e) => {
+
+canvas.addEventListener("pointerup", (e) => {
   if (firstStar) {
-    const touch = e.changedTouches[0];
-    const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
-    const clickedIdx = findStarIdxAt(x, y);
-    if (clickedIdx !== -1 && stars[clickedIdx] !== firstStar) {
-      connections.push([firstStar, stars[clickedIdx]]);
+    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
+    const clickedStar = findStarAt(x, y);
+    if (clickedStar && clickedStar !== firstStar) {
+      connections.push([firstStar, clickedStar]);
       firstStar.highlighted = false;
       firstStar = null;
       updateRasiGroups();
@@ -448,26 +495,6 @@ canvas.addEventListener("touchend", (e) => {
       draw();
       return;
     }
-  } else if (e.touches.length === 0) {
-    const now = Date.now();
-    if (now - lastTapTime < 400) {
-      const touch = e.changedTouches[0];
-      const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
-      const starIdx = findStarIdxAt(x, y);
-      if (starIdx != -1) {
-        showStarMenu(touch.clientX, touch.clientY, starIdx);
-        lastTapTime = 0;
-        return;
-      }
-      const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
-      if (msg !== null) {
-        stars.push({ x, y, message: msg });
-        updateRasiGroups();
-        saveToFirebase();
-        draw();
-      }
-    }
-    lastTapTime = now;
   }
 });
 
