@@ -41,17 +41,21 @@
     }
     #closeBtn {
       position: absolute;
-      top: 5px;
-      right: 5px;
+      top: 3px;
+      right: 3px;
       background: #ff5555;
       color: white;
       border-radius: 50%;
-      width: 25px;
-      height: 25px;
-      font-size: 18px;
+      width: 23px;
+      height: 23px;
+      font-size: 17px;
       cursor: pointer;
       text-align: center;
-      line-height: 25px;
+      line-height: 23px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #controls {
       position: absolute;
@@ -60,19 +64,61 @@
       background: rgba(0,0,0,0.6);
       padding: 10px;
       border-radius: 8px;
-      z-index: 5;
-      transition: opacity 0.2s;
+      z-index: 20;
+      transition: opacity 0.2s, transform 0.3s;
+      min-width: 180px;
+      box-shadow: 0 4px 16px #000a;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    .hide-controls {
+    #controls.hide-controls {
       opacity: 0;
       pointer-events: none;
+      transform: translateX(-250px);
+    }
+    #controls .close-controls-btn {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+      align-items: center;
+      padding: 0;
+      width: 100%;
+    }
+    #hamburgerBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 50;
+      width: 44px;
+      height: 44px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 12px #0008;
+      font-size: 28px;
+      color: #fff;
+      transition: background 0.15s;
+    }
+    #hamburgerBtn:hover {
+      background: #222;
     }
     button {
       background: #fff;
       border: none;
       border-radius: 5px;
       padding: 5px 10px;
-      margin: 4px 0;
+      margin: 0;
       font-size: 14px;
       cursor: pointer;
     }
@@ -104,14 +150,22 @@
       pointer-events: none;
       user-select: none;
     }
+    .group-label {
+      font-weight: bold;
+      text-shadow: 1px 1px 4px #000, 0 0 2px #fff;
+      pointer-events: none;
+      user-select: none;
+      font-size: 18px;
+    }
     @media (max-width: 600px) {
       #controls {
         top: 0;
         left: 0;
         width: 100vw;
         font-size: 4vw;
-        padding: 4vw 2vw;
+        padding: 4vw 2vw 2vw 2vw;
         border-radius: 0 0 12px 12px;
+        min-width: unset;
       }
       button {
         font-size: 4vw;
@@ -131,6 +185,11 @@
         font-size: 6vw;
         line-height: 8vw;
       }
+      #hamburgerBtn {
+        width: 12vw;
+        height: 12vw;
+        font-size: 7vw;
+      }
     }
   </style>
 </head>
@@ -145,19 +204,24 @@
     <button onclick="deleteConnectionsOfStar()">❌ Hapus Sambungan</button>
     <hr>
   </div>
-  <div id="constellationMenuSection">
-    <button onclick="promptConstellationName()">➕ Nama Rasi</button>
-    <button onclick="removeConstellationName()">🗑️ Hapus Nama Rasi</button>
-    <button onclick="changeConstellationColor()">🌈 Ganti Warna Nama</button>
+  <div id="groupMenuSection" style="display:none;">
+    <button onclick="promptGroupName()">➕ Nama Grup</button>
+    <button onclick="removeGroupName()">🗑️ Hapus Nama Grup</button>
+    <button onclick="changeGroupColor()">🌈 Ganti Warna Nama</button>
+    <button onclick="toggleGroupNameVisibility()">👁️ Show/Hide Nama Grup</button>
+    <hr>
   </div>
-  <div id="closeBtn" onclick="hideContextMenu()">X</div>
+  <div id="closeBtn" onclick="hideContextMenu()">✕</div>
 </div>
-<div id="controls">
-  ✨ 2x Tap untuk menambah/mengelola bintang<br>
+<button id="hamburgerBtn" title="Buka Menu" aria-label="Buka Menu" style="display:block;">
+  <span id="hamburgerIcon">&#9776;</span>
+</button>
+<div id="controls" class="hide-controls" style="opacity:0;pointer-events:none;">
+  <button class="close-controls-btn" onclick="toggleControls()" title="Tutup Menu">&#10005;</button>
+  <div>✨ 2x Tap untuk menambah/mengelola bintang<br>🔗 Sambung bintang dengan mode sambung</div>
   <button onclick="resetStars()">🔄 Reset Semua</button>
   <hr style="border:1px solid #222">
-  <button onclick="toggleConstellationName()" id="toggleNameBtn">👁️ Sembunyikan Nama Rasi</button>
-  <button onclick="toggleControls()" id="toggleControlsBtn">⬅️ Sembunyikan Menu</button>
+  <div id="groupControlButtons"></div>
 </div>
 <div id="starInfo"></div>
 
@@ -185,25 +249,22 @@
 
   let stars = [];
   let connections = [];
+  let starGroups = []; // [{starIndices:[], name:"", color:"", visible:true}]
   let selectedStar = null;
   let firstStar = null;
   let contextStar = null;
-
-  // Rasi state
-  let constellation = {
-    name: "",
-    color: "#FFD700",
-    visible: true
-  };
+  let contextGroupIdx = null;
+  let connectMode = false; // true if first star is selected for connection
 
   // UI element
   const messageBox = document.getElementById("messageBox");
   const contextMenu = document.getElementById("contextMenu");
   const starMenuSection = document.getElementById("starMenuSection");
+  const groupMenuSection = document.getElementById("groupMenuSection");
   const controls = document.getElementById("controls");
-  const toggleNameBtn = document.getElementById("toggleNameBtn");
-  const toggleControlsBtn = document.getElementById("toggleControlsBtn");
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
   const starInfo = document.getElementById("starInfo");
+  const groupControlButtons = document.getElementById("groupControlButtons");
 
   // Pan/zoom
   let scale = 1;
@@ -213,30 +274,108 @@
   let lastX = 0;
   let lastY = 0;
 
-  // Draw stars, connections, and constellation name
+  // --------- GROUPS FUNCTIONALITY ---------
+  // Find connected groups of stars (each group = connected component)
+  function buildGroups() {
+    const visited = new Array(stars.length).fill(false);
+    const groups = [];
+    const starIdxMap = stars.map((s, i) => i);
+
+    function dfs(idx, group) {
+      visited[idx] = true;
+      group.push(idx);
+      connections.forEach(([aIdx, bIdx]) => {
+        if (aIdx === idx && !visited[bIdx]) dfs(bIdx, group);
+        if (bIdx === idx && !visited[aIdx]) dfs(aIdx, group);
+      });
+    }
+
+    for (let i = 0; i < stars.length; ++i) {
+      if (!visited[i]) {
+        const group = [];
+        dfs(i, group);
+        if (group.length > 0) groups.push(group);
+      }
+    }
+    // For each group, assign metadata (name, color, visible)
+    // Try to keep existing metadata by group star member id
+    const newStarGroups = groups.map((starIndices) => {
+      let meta = undefined;
+      // try to find existing group with same members
+      for (const oldGroup of starGroups) {
+        if (
+          oldGroup.starIndices.length === starIndices.length &&
+          oldGroup.starIndices.every(i => starIndices.includes(i))
+        ) {
+          meta = oldGroup;
+          break;
+        }
+      }
+      return {
+        starIndices: [...starIndices],
+        name: meta?.name || "",
+        color: meta?.color || "#FFD700",
+        visible: meta?.visible !== undefined ? meta.visible : true
+      };
+    });
+    starGroups = newStarGroups;
+    updateGroupControlButtons();
+  }
+
+  function updateGroupControlButtons() {
+    groupControlButtons.innerHTML = "";
+    if (starGroups.length === 0) return;
+    starGroups.forEach((group, idx) => {
+      if (group.starIndices.length < 2) return; // only show if group is real connection
+      const btn = document.createElement("button");
+      btn.textContent = (group.visible ? "👁️ " : "🚫 ") + (group.name || `Grup ${idx+1}`);
+      btn.style.background = group.color || "#FFD700";
+      btn.onclick = () => {
+        group.visible = !group.visible;
+        updateGroupControlButtons();
+        draw();
+        saveToFirebase();
+      };
+      groupControlButtons.appendChild(btn);
+    });
+  }
+
+  // --------- DRAWING ---------
   function draw() {
     ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
     ctx.clearRect((-offsetX) / scale, (-offsetY) / scale, canvas.width / scale, canvas.height / scale);
 
-    // Draw connections
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.lineWidth = 1.5;
-    connections.forEach(([a, b]) => {
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
+    // Draw connections (per group, with color)
+    buildGroups();
+    starGroups.forEach((group, groupIdx) => {
+      if (!group.visible) return;
+      ctx.save();
+      ctx.strokeStyle = group.color || "#FFD700";
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = 1.7;
+      // draw group connections only
+      group.starIndices.forEach(aIdx => {
+        connections.forEach(([i1, i2]) => {
+          if (group.starIndices.includes(i1) && group.starIndices.includes(i2)) {
+            ctx.beginPath();
+            ctx.moveTo(stars[i1].x, stars[i1].y);
+            ctx.lineTo(stars[i2].x, stars[i2].y);
+            ctx.stroke();
+          }
+        });
+      });
+      ctx.restore();
     });
 
     // Draw stars
-    stars.forEach(star => {
+    stars.forEach((star, idx) => {
       ctx.save();
       if (!star.highlighted) {
         ctx.shadowColor = "#fff";
         ctx.shadowBlur = 18;
       } else {
         ctx.shadowColor = "#FF0";
-        ctx.shadowBlur = 24;
+        ctx.shadowBlur = 26;
       }
       ctx.beginPath();
       ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
@@ -245,41 +384,39 @@
       ctx.restore();
     });
 
-    // Draw constellation name (if enabled and ada koneksi)
-    if (constellation.name && constellation.visible && connections.length > 0) {
-      // Ambil semua titik koneksi, cari bounding box di tengah koneksi
+    // Draw group names (at the top of the group)
+    starGroups.forEach((group, idx) => {
+      if (!group.visible || !group.name || group.starIndices.length < 2) return;
+      // Find bounding box of group
       let xs = [], ys = [];
-      connections.forEach(([a, b]) => {
-        xs.push(a.x, b.x);
-        ys.push(a.y, b.y);
+      group.starIndices.forEach(i => {
+        xs.push(stars[i].x);
+        ys.push(stars[i].y);
       });
       const minX = Math.min(...xs), maxX = Math.max(...xs);
       const minY = Math.min(...ys), maxY = Math.max(...ys);
       const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
-
-      // Jarak offset ke atas (agar tidak nabrak bintang/koneksi)
-      const nameOffset = 30; // px
-
+      const topY = minY;
+      const nameOffset = 40; // Jarak lebih ke atas
       ctx.save();
-      ctx.font = "bold 26px Arial";
-      ctx.fillStyle = constellation.color || "#FFD700";
+      ctx.font = "bold 19px Arial";
+      ctx.fillStyle = group.color || "#FFD700";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "#000";
       ctx.shadowBlur = 8;
-      ctx.globalAlpha = 0.95;
-      ctx.fillText(constellation.name, centerX, centerY - nameOffset);
+      ctx.globalAlpha = 0.97;
+      ctx.fillText(group.name, centerX, topY - nameOffset);
       ctx.restore();
-    }
+    });
   }
 
-  // Simpan/load ke Firebase
+  // --------- DATA SAVE/LOAD ---------
   function saveToFirebase() {
     const data = {
       stars: stars.map(s => ({ x: s.x, y: s.y, message: s.message })),
-      connections: connections.map(([a, b]) => [stars.indexOf(a), stars.indexOf(b)]),
-      constellation
+      connections,
+      starGroups
     };
     set(ref(db, "constellations"), data);
   }
@@ -287,10 +424,13 @@
     get(child(ref(db), "constellations")).then((snapshot) => {
       const data = snapshot.val();
       if (data) {
-        stars = data.stars.map(s => ({ ...s }));
-        connections = data.connections.map(([i1, i2]) => [stars[i1], stars[i2]]);
-        constellation = data.constellation || { name: "", color: "#FFD700", visible: true };
-        updateToggleNameBtn();
+        stars = (data.stars || []).map(s => ({ ...s }));
+        // connections: [i1,i2] index
+        connections = (data.connections || []).map(([i1, i2]) => [i1, i2]);
+        starGroups = (data.starGroups || []).map(g => ({
+          ...g, starIndices: [...g.starIndices]
+        }));
+        updateGroupControlButtons();
         draw();
       }
     });
@@ -299,29 +439,22 @@
   function resetStars() {
     stars = [];
     connections = [];
+    starGroups = [];
     selectedStar = null;
     firstStar = null;
-    constellation = { name: "", color: "#FFD700", visible: true };
-    updateToggleNameBtn();
+    connectMode = false;
     hideContextMenu();
+    updateGroupControlButtons();
     saveToFirebase();
     draw();
   }
 
-  function showMessage(star, x, y) {
-    if (star.message) {
-      messageBox.textContent = star.message;
-      messageBox.style.left = x + 15 + "px";
-      messageBox.style.top = y + 15 + "px";
-      messageBox.style.display = "block";
-    }
-  }
-  function hideMessage() {
-    messageBox.style.display = "none";
-  }
-  function showContextMenu(x, y, star) {
-    contextStar = star;
-    starMenuSection.style.display = star ? "block" : "none";
+  // --------- MENU & CONTEXT MENU ---------
+  function showContextMenu(x, y, starIdx = null, groupIdx = null) {
+    contextStar = starIdx !== null ? stars[starIdx] : null;
+    contextGroupIdx = groupIdx;
+    starMenuSection.style.display = contextStar !== null ? "block" : "none";
+    groupMenuSection.style.display = groupIdx !== null ? "block" : "none";
     contextMenu.style.left = x + "px";
     contextMenu.style.top = y + "px";
     contextMenu.style.display = "block";
@@ -329,6 +462,7 @@
   function hideContextMenu() {
     contextMenu.style.display = "none";
     contextStar = null;
+    contextGroupIdx = null;
   }
   function editSelectedStar() {
     if (contextStar) {
@@ -341,103 +475,195 @@
   }
   function deleteSelectedStar() {
     if (contextStar) {
-      const index = stars.indexOf(contextStar);
-      if (index !== -1) stars.splice(index, 1);
-      connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
+      const idx = stars.indexOf(contextStar);
+      if (idx !== -1) {
+        stars.splice(idx, 1);
+        // Remove connections containing this star index
+        connections = connections.filter(([a, b]) => a !== idx && b !== idx);
+        // Remove star idx from groups
+        starGroups.forEach(g => {
+          g.starIndices = g.starIndices.filter(i => i !== idx);
+        });
+        // Fix indices after removing
+        function fixIndex(val) { return val > idx ? val - 1 : val; }
+        connections = connections.map(([a, b]) => [fixIndex(a), fixIndex(b)]);
+        starGroups.forEach(g => {
+          g.starIndices = g.starIndices.map(fixIndex);
+        });
+      }
       saveToFirebase();
       draw();
     }
     hideContextMenu();
   }
   function startConnectingStars() {
-    if (firstStar) {
-      firstStar.highlighted = false;
+    if (!contextStar) return;
+    if (firstStar != null) {
+      stars[firstStar].highlighted = false;
       firstStar = null;
-      draw();
-    } else if (contextStar) {
-      firstStar = contextStar;
-      firstStar.highlighted = true;
-      hideContextMenu();
+      connectMode = false;
       draw();
     }
+    firstStar = stars.indexOf(contextStar);
+    stars[firstStar].highlighted = true;
+    connectMode = true;
+    hideContextMenu();
+    draw();
   }
   function deleteConnectionsOfStar() {
     if (contextStar) {
-      connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
+      const idx = stars.indexOf(contextStar);
+      connections = connections.filter(([a, b]) => a !== idx && b !== idx);
       saveToFirebase();
       draw();
     }
     hideContextMenu();
-  }
-  // Helper: cari star di posisi tertentu
-  function findStarAt(x, y) {
-    return stars.find(star => {
-      const dx = star.x - x;
-      const dy = star.y - y;
-      return Math.sqrt(dx * dx + dy * dy) < 10;
-    });
   }
 
-  // --- Fitur: Nama Rasi ---
-  function promptConstellationName() {
-    const name = prompt("Nama rasi bintang ini:", constellation.name || "");
+  // --------- GROUP MENU ACTIONS ---------
+  function promptGroupName() {
+    if (contextGroupIdx === null) return;
+    const g = starGroups[contextGroupIdx];
+    const name = prompt("Nama grup:", g.name || "");
     if (name !== null) {
-      constellation.name = name;
+      g.name = name;
       saveToFirebase();
       draw();
+      updateGroupControlButtons();
     }
     hideContextMenu();
   }
-  function removeConstellationName() {
-    if (constellation.name) {
-      if (confirm("Hapus nama rasi?")) {
-        constellation.name = "";
-        saveToFirebase();
-        draw();
-      }
+  function removeGroupName() {
+    if (contextGroupIdx === null) return;
+    const g = starGroups[contextGroupIdx];
+    if (g.name && confirm("Hapus nama grup?")) {
+      g.name = "";
+      saveToFirebase();
+      draw();
+      updateGroupControlButtons();
     }
     hideContextMenu();
   }
-  function changeConstellationColor() {
-    const color = prompt("Masukkan kode warna hex (mis: #FFD700):", constellation.color || "#FFD700");
+  function changeGroupColor() {
+    if (contextGroupIdx === null) return;
+    const g = starGroups[contextGroupIdx];
+    const color = prompt("Masukkan kode warna hex (mis: #FFD700):", g.color || "#FFD700");
     if (color && /^#([0-9a-fA-F]{3}){1,2}$/.test(color)) {
-      constellation.color = color;
+      g.color = color;
       saveToFirebase();
       draw();
+      updateGroupControlButtons();
     } else if (color) {
       alert("Format warna tidak valid. Gunakan hex seperti #FFD700");
     }
     hideContextMenu();
   }
-  function toggleConstellationName() {
-    constellation.visible = !constellation.visible;
-    updateToggleNameBtn();
-    draw();
+  function toggleGroupNameVisibility() {
+    if (contextGroupIdx === null) return;
+    const g = starGroups[contextGroupIdx];
+    g.visible = !g.visible;
     saveToFirebase();
-  }
-  function updateToggleNameBtn() {
-    toggleNameBtn.textContent = constellation.visible ? "👁️ Sembunyikan Nama Rasi" : "👁️ Tampilkan Nama Rasi";
-  }
-  function toggleControls() {
-    controls.classList.toggle("hide-controls");
-    toggleControlsBtn.textContent = controls.classList.contains("hide-controls") ? "➡️ Tampilkan Menu" : "⬅️ Sembunyikan Menu";
+    draw();
+    updateGroupControlButtons();
+    hideContextMenu();
   }
 
-  // -- Event: Double tap/klik untuk menu/menambah bintang
+  // --------- STAR FIND & UTILS ---------
+  function findStarAt(x, y) {
+    return stars.findIndex(star => {
+      const dx = star.x - x;
+      const dy = star.y - y;
+      return Math.sqrt(dx * dx + dy * dy) < 10;
+    });
+  }
+  function findGroupAt(x, y) {
+    // If click is in bounding box of group, return groupIdx
+    for (let gi = 0; gi < starGroups.length; gi++) {
+      const g = starGroups[gi];
+      if (g.starIndices.length < 2) continue;
+      let xs = [], ys = [];
+      g.starIndices.forEach(i => {
+        xs.push(stars[i].x);
+        ys.push(stars[i].y);
+      });
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const centerX = (minX + maxX) / 2;
+      const topY = minY;
+      // Check if click is near group name position (top of group)
+      if (Math.abs(x - centerX) < 60 && Math.abs(y - (topY - 40)) < 25) {
+        return gi;
+      }
+    }
+    return null;
+  }
+
+  // --------- EVENTS ---------
+  // Hamburger menu
+  function showControls() {
+    controls.classList.remove("hide-controls");
+    controls.style.opacity = 1;
+    controls.style.pointerEvents = "auto";
+    hamburgerBtn.style.display = "none";
+  }
+  function toggleControls() {
+    if (!controls.classList.contains("hide-controls")) {
+      controls.classList.add("hide-controls");
+      controls.style.opacity = 0;
+      controls.style.pointerEvents = "none";
+      hamburgerBtn.style.display = "block";
+    } else {
+      showControls();
+    }
+  }
+  hamburgerBtn.onclick = showControls;
+
+  // Hide context menu on click outside
+  document.addEventListener("pointerdown", (e) => {
+    if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
+
+  // Responsive canvas
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
+  }
+  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("orientationchange", resizeCanvas);
+  resizeCanvas();
+
+  // --- Tap events ---
   let lastTap = 0;
   let tapTimeout;
   canvas.addEventListener("pointerdown", (e) => {
     clearTimeout(tapTimeout);
     const now = Date.now();
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const clickedStar = findStarAt(x, y);
+    const starIdx = findStarAt(x, y);
+    const groupIdx = starIdx < 0 ? findGroupAt(x, y) : null;
 
+    // If connect mode: single tap on second star to connect
+    if (connectMode && firstStar != null && starIdx >= 0 && starIdx !== firstStar) {
+      connections.push([firstStar, starIdx]);
+      stars[firstStar].highlighted = false;
+      firstStar = null;
+      connectMode = false;
+      saveToFirebase();
+      draw();
+      return;
+    }
+
+    // Double tap: open context menu or add star
     if (now - lastTap < 350) {
-      // Double tap
-      if (clickedStar) {
-        showContextMenu(e.clientX, e.clientY, clickedStar); // tampilkan menu gabungan
+      if (starIdx >= 0) {
+        showContextMenu(e.clientX, e.clientY, starIdx, null);
+      } else if (groupIdx != null) {
+        showContextMenu(e.clientX, e.clientY, null, groupIdx);
       } else {
-        // Tambah bintang baru di posisi tap
+        // Add new star
         const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
         if (msg !== null) {
           stars.push({ x, y, message: msg });
@@ -452,32 +678,12 @@
     }
   });
 
-  // Connect stars (klik bintang lain setelah sambung)
-  canvas.addEventListener("dblclick", (e) => {
-    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const clickedStar = findStarAt(x, y);
-    if (firstStar && clickedStar && clickedStar !== firstStar) {
-      connections.push([firstStar, clickedStar]);
-      firstStar.highlighted = false;
-      firstStar = null;
-      saveToFirebase();
-      draw();
-      return;
-    }
-  });
-
-  // Hide context menu on click outside
-  document.addEventListener("pointerdown", (e) => {
-    if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
-      hideContextMenu();
-    }
-  });
-
-  // Show star info when mouse or touch is near a star
+  // Show info on hover
   canvas.addEventListener("pointermove", (e) => {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const hoveredStar = findStarAt(x, y);
-    if (hoveredStar) {
+    const starIdx = findStarAt(x, y);
+    if (starIdx >= 0) {
+      const hoveredStar = stars[starIdx];
       starInfo.textContent = `Koordinat: (${hoveredStar.x.toFixed(2)}, ${hoveredStar.y.toFixed(2)})`;
       starInfo.innerHTML += `<br>Pesan: ${hoveredStar.message || "Tidak ada pesan"}`;
       // Position starInfo above the pointer
@@ -496,20 +702,7 @@
     }
   });
 
-  // Responsive canvas
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    draw();
-  }
-  window.addEventListener("resize", resizeCanvas);
-  window.addEventListener("orientationchange", resizeCanvas);
-  resizeCanvas();
-
-  // Load data dari Firebase saat awal
-  loadFromFirebase();
-
-  // Pan/zoom/dll
+  // Wheel zoom
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const mouse = toCanvasCoords(e.clientX, e.clientY);
@@ -545,7 +738,7 @@
 
   // Drag/pan
   canvas.addEventListener("pointerdown", (e) => {
-    if (e.button === 1 || (e.pointerType === "touch" && !findStarAt(...Object.values(toCanvasCoords(e.clientX, e.clientY))))) {
+    if (e.button === 1 || (e.pointerType === "touch" && findStarAt(...Object.values(toCanvasCoords(e.clientX, e.clientY))) < 0)) {
       isDragging = true;
       lastX = e.clientX;
       lastY = e.clientY;
@@ -564,25 +757,28 @@
     isDragging = false;
   });
 
-  // Expose ke window supaya bisa dipakai inline onclick
+  // Expose for contextMenu
   window.deleteConnectionsOfStar = deleteConnectionsOfStar;
   window.editSelectedStar = editSelectedStar;
   window.deleteSelectedStar = deleteSelectedStar;
   window.startConnectingStars = startConnectingStars;
   window.resetStars = resetStars;
-  window.promptConstellationName = promptConstellationName;
-  window.removeConstellationName = removeConstellationName;
-  window.changeConstellationColor = changeConstellationColor;
-  window.toggleConstellationName = toggleConstellationName;
+  window.promptGroupName = promptGroupName;
+  window.removeGroupName = removeGroupName;
+  window.changeGroupColor = changeGroupColor;
+  window.toggleGroupNameVisibility = toggleGroupNameVisibility;
   window.toggleControls = toggleControls;
 
-  // Konversi ke koordinat canvas
+  // Helper: Konversi ke koordinat canvas
   function toCanvasCoords(x, y) {
     return {
       x: (x - offsetX) / scale,
       y: (y - offsetY) / scale
     };
   }
+
+  // Initial load
+  loadFromFirebase();
 </script>
 </body>
 </html>
