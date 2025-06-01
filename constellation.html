@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Constellation Creator 🌟</title>
+  <title>Multi Constellation Creator 🌟</title>
   <style>
     body {
       margin: 0;
@@ -164,7 +164,7 @@
     <button onclick="deleteConnectionsOfStar()">❌ Hapus Sambungan</button>
     <hr>
   </div>
-  <div id="constellationMenuSection">
+  <div id="constellationMenuSection" style="display:none;">
     <button onclick="promptConstellationName()">➕ Nama Rasi</button>
     <button onclick="removeConstellationName()">🗑️ Hapus Nama Rasi</button>
     <button onclick="changeConstellationColor()">🌈 Ganti Warna Nama</button>
@@ -175,434 +175,368 @@
 <button id="menuToggleBtn" onclick="toggleControls()">&#9776;</button>
 <!-- Menu Controls -->
 <div id="controls">
-  ✨ 2x Tap/DblClick pada bintang untuk kelola bintang<br>
+  ✨ 2x Tap/DblClick pada bintang untuk kelola bintang/rasi<br>
   <button onclick="resetStars()">🔄 Reset Semua</button>
-  <hr style="border:1px solid #222">
-  <button onclick="toggleConstellationName()" id="toggleNameBtn">👁️ Sembunyikan Nama Rasi</button>
 </div>
 <div id="starInfo"></div>
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+// Kode ini tidak menggunakan Firebase untuk menyederhanakan, silakan tambahkan jika ingin persistent
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
-    authDomain: "constellation-b1844.firebaseapp.com",
-    databaseURL: "https://constellation-b1844-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "constellation-b1844",
-    storageBucket: "constellation-b1844.appspot.com",
-    messagingSenderId: "31660084862",
-    appId: "1:31660084862:web:0c2f9301819de7a540922f",
-    measurementId: "G-ZFYHDD1EY0"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const canvas = document.getElementById("sky");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-  const canvas = document.getElementById("sky");
-  const ctx = canvas.getContext("2d");
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+let stars = []; // {x, y, message}
+let connections = []; // [indexA, indexB]
+let groupData = []; // [{name, color, visible:true}]
+let cachedGroups = null; // agar tidak hitung ulang terus
 
-  let stars = [];
-  let connections = [];
-  let selectedStar = null;
-  let firstStar = null;
-  let contextStar = null;
+let selectedStar = null;
+let firstStar = null;
+let contextStar = null;
+let contextGroupIdx = null;
 
-  // Rasi state
-  let constellation = {
-    name: "",
-    color: "#FFD700",
-    visible: true
-  };
+const messageBox = document.getElementById("messageBox");
+const contextMenu = document.getElementById("contextMenu");
+const starMenuSection = document.getElementById("starMenuSection");
+const constellationMenuSection = document.getElementById("constellationMenuSection");
+const controls = document.getElementById("controls");
+const menuToggleBtn = document.getElementById("menuToggleBtn");
+const starInfo = document.getElementById("starInfo");
 
-  // UI element
-  const messageBox = document.getElementById("messageBox");
-  const contextMenu = document.getElementById("contextMenu");
-  const starMenuSection = document.getElementById("starMenuSection");
-  const controls = document.getElementById("controls");
-  const menuToggleBtn = document.getElementById("menuToggleBtn");
-  const toggleNameBtn = document.getElementById("toggleNameBtn");
-  const starInfo = document.getElementById("starInfo");
+function toggleControls() {
+  if (controls.style.display === "none" || controls.style.display === "") {
+    controls.style.display = "block";
+    menuToggleBtn.innerHTML = "&times;";
+  } else {
+    controls.style.display = "none";
+    menuToggleBtn.innerHTML = "&#9776;";
+  }
+}
+controls.style.display = "none";
+menuToggleBtn.innerHTML = "&#9776;";
 
-  // Hamburger/close logic
-  function toggleControls() {
-    if (controls.style.display === "none" || controls.style.display === "") {
-      controls.style.display = "block";
-      menuToggleBtn.innerHTML = "&times;";
-    } else {
-      controls.style.display = "none";
-      menuToggleBtn.innerHTML = "&#9776;";
+// --- Grup/rasi detection ---
+function detectGroups() {
+  // Reset
+  let visited = new Array(stars.length).fill(false);
+  let groups = [];
+  let starToGroup = new Array(stars.length).fill(null);
+
+  for (let i = 0; i < stars.length; i++) {
+    if (!visited[i]) {
+      let group = [];
+      let queue = [i];
+      visited[i] = true;
+      while (queue.length) {
+        let curr = queue.shift();
+        group.push(curr);
+        connections.forEach(([a, b]) => {
+          if (a === curr && !visited[b]) { visited[b] = true; queue.push(b); }
+          if (b === curr && !visited[a]) { visited[a] = true; queue.push(a); }
+        });
+      }
+      if (group.length > 1) { // hanya grup yang punya koneksi
+        groups.push(group);
+        group.forEach(idx => starToGroup[idx] = groups.length - 1);
+      }
     }
   }
-  // Set initial state
-  controls.style.display = "none";
-  menuToggleBtn.innerHTML = "&#9776;";
+  cachedGroups = { groups, starToGroup };
+  // pad groupData jika kurang
+  while (groupData.length < groups.length) {
+    groupData.push({
+      name: "",
+      color: "#FFD700",
+      visible: true,
+    });
+  }
+  return { groups, starToGroup };
+}
 
-  // Pan/zoom
-  let scale = 1;
-  let offsetX = 0;
-  let offsetY = 0;
-  let isDragging = false;
-  let lastX = 0;
-  let lastY = 0;
+// --- DRAW ---
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw stars, connections, and constellation name
-  function draw() {
-    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-    ctx.clearRect((-offsetX) / scale, (-offsetY) / scale, canvas.width / scale, canvas.height / scale);
+  const { groups, starToGroup } = detectGroups();
 
-    // Draw connections
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+  // Draw all connections per group
+  groups.forEach((group, groupIdx) => {
+    if (!groupData[groupIdx] || !groupData[groupIdx].visible) return;
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
     ctx.lineWidth = 1.5;
-    connections.forEach(([a, b]) => {
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    });
-
-    // Draw stars
-    stars.forEach(star => {
-      ctx.save();
-      if (!star.highlighted) {
-        ctx.shadowColor = "#fff";
-        ctx.shadowBlur = 18;
-      } else {
-        ctx.shadowColor = "#FF0";
-        ctx.shadowBlur = 24;
-      }
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = star.highlighted ? "#FF0" : "white";
-      ctx.fill();
-      ctx.restore();
-    });
-
-    // Draw constellation name (if enabled and ada koneksi)
-    if (constellation.name && constellation.visible && connections.length > 0) {
-      let xs = [], ys = [];
+    group.forEach(idxA => {
       connections.forEach(([a, b]) => {
-        xs.push(a.x, b.x);
-        ys.push(a.y, b.y);
+        if (a === idxA && group.includes(b)) {
+          ctx.beginPath();
+          ctx.moveTo(stars[a].x, stars[a].y);
+          ctx.lineTo(stars[b].x, stars[b].y);
+          ctx.stroke();
+        }
       });
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minY = Math.min(...ys), maxY = Math.max(...ys);
-      const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
-      const nameOffset = 30;
-      ctx.save();
-      ctx.font = "bold 26px Arial";
-      ctx.fillStyle = constellation.color || "#FFD700";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.shadowColor = "#000";
-      ctx.shadowBlur = 8;
-      ctx.globalAlpha = 0.95;
-      ctx.fillText(constellation.name, centerX, centerY - nameOffset);
-      ctx.restore();
-    }
-  }
-
-  // Simpan/load ke Firebase
-  function saveToFirebase() {
-    const data = {
-      stars: stars.map(s => ({ x: s.x, y: s.y, message: s.message })),
-      connections: connections.map(([a, b]) => [stars.indexOf(a), stars.indexOf(b)]),
-      constellation
-    };
-    set(ref(db, "constellations"), data);
-  }
-  function loadFromFirebase() {
-    get(child(ref(db), "constellations")).then((snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        stars = data.stars.map(s => ({ ...s }));
-        connections = data.connections.map(([i1, i2]) => [stars[i1], stars[i2]]);
-        constellation = data.constellation || { name: "", color: "#FFD700", visible: true };
-        updateToggleNameBtn();
-        draw();
-      }
     });
-  }
+  });
 
-  function resetStars() {
-    stars = [];
-    connections = [];
-    selectedStar = null;
-    firstStar = null;
-    constellation = { name: "", color: "#FFD700", visible: true };
-    updateToggleNameBtn();
-    hideContextMenu();
-    saveToFirebase();
+  // Draw all stars
+  stars.forEach((star, i) => {
+    ctx.save();
+    ctx.shadowColor = "#fff";
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Draw rasi name di atas bounding box masing-masing grup
+  groups.forEach((group, groupIdx) => {
+    const gdata = groupData[groupIdx];
+    if (!gdata || !gdata.visible || !gdata.name) return;
+    // ambil koordinat semua bintang dalam grup
+    const xs = group.map(idx => stars[idx].x);
+    const ys = group.map(idx => stars[idx].y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const topY = Math.min(...ys);
+    const centerX = (minX + maxX) / 2;
+    const nameOffset = 25;
+
+    ctx.save();
+    ctx.font = "bold 26px Arial";
+    ctx.fillStyle = gdata.color || "#FFD700";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.shadowColor = "#000";
+    ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.95;
+    ctx.fillText(gdata.name, centerX, topY - nameOffset);
+    ctx.restore();
+  });
+}
+
+// --- Event logic ---
+function resetStars() {
+  stars = [];
+  connections = [];
+  groupData = [];
+  cachedGroups = null;
+  hideContextMenu();
+  draw();
+}
+
+// Context menu logic
+function showContextMenu(x, y, starIdx) {
+  detectGroups();
+  contextStar = starIdx;
+  // Deteksi grup bintang ini
+  contextGroupIdx = cachedGroups.starToGroup[starIdx];
+  starMenuSection.style.display = starIdx !== null ? "block" : "none";
+  constellationMenuSection.style.display = contextGroupIdx !== null ? "block" : "none";
+  contextMenu.style.left = x + "px";
+  contextMenu.style.top = y + "px";
+  contextMenu.style.display = "block";
+}
+function hideContextMenu() {
+  contextMenu.style.display = "none";
+  contextStar = null;
+  contextGroupIdx = null;
+}
+function editSelectedStar() {
+  if (contextStar !== null) {
+    const newMsg = prompt("Ubah pesan:", stars[contextStar].message || "");
+    if (newMsg !== null) stars[contextStar].message = newMsg;
     draw();
   }
-
-  function showMessage(star, x, y) {
-    if (star.message) {
-      messageBox.textContent = star.message;
-      messageBox.style.left = x + 15 + "px";
-      messageBox.style.top = y + 15 + "px";
-      messageBox.style.display = "block";
-    }
+  hideContextMenu();
+}
+function deleteSelectedStar() {
+  if (contextStar !== null) {
+    // Hapus bintang dan koneksinya
+    stars.splice(contextStar, 1);
+    // Update koneksi (hapus yang terkait bintang ini, kurangi index)
+    connections = connections
+      .filter(([a, b]) => a !== contextStar && b !== contextStar)
+      .map(([a, b]) => [
+        a > contextStar ? a - 1 : a,
+        b > contextStar ? b - 1 : b,
+      ]);
+    cachedGroups = null;
+    draw();
   }
-  function hideMessage() {
-    messageBox.style.display = "none";
-  }
-  function showContextMenu(x, y, star) {
-    contextStar = star;
-    starMenuSection.style.display = star ? "block" : "none";
-    contextMenu.style.left = x + "px";
-    contextMenu.style.top = y + "px";
-    contextMenu.style.display = "block";
-  }
-  function hideContextMenu() {
-    contextMenu.style.display = "none";
-    contextStar = null;
-  }
-  function editSelectedStar() {
-    if (contextStar) {
-      const newMsg = prompt("Ubah pesan:", contextStar.message || "");
-      if (newMsg !== null) contextStar.message = newMsg;
-      saveToFirebase();
-      draw();
-    }
+  hideContextMenu();
+}
+function startConnectingStars() {
+  if (firstStar !== null) {
+    firstStar = null;
+    draw();
+  } else if (contextStar !== null) {
+    firstStar = contextStar;
     hideContextMenu();
+    draw();
   }
-  function deleteSelectedStar() {
-    if (contextStar) {
-      const index = stars.indexOf(contextStar);
-      if (index !== -1) stars.splice(index, 1);
-      connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
-      saveToFirebase();
-      draw();
-    }
-    hideContextMenu();
+}
+function deleteConnectionsOfStar() {
+  if (contextStar !== null) {
+    connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
+    cachedGroups = null;
+    draw();
   }
-  function startConnectingStars() {
-    if (firstStar) {
-      firstStar.highlighted = false;
-      firstStar = null;
-      draw();
-    } else if (contextStar) {
-      firstStar = contextStar;
-      firstStar.highlighted = true;
-      hideContextMenu();
-      draw();
-    }
-  }
-  function deleteConnectionsOfStar() {
-    if (contextStar) {
-      connections = connections.filter(([a, b]) => a !== contextStar && b !== contextStar);
-      saveToFirebase();
-      draw();
-    }
-    hideContextMenu();
-  }
-  function findStarAt(x, y) {
-    return stars.find(star => {
-      const dx = star.x - x;
-      const dy = star.y - y;
-      return Math.sqrt(dx * dx + dy * dy) < 10;
-    });
-  }
-
-  // --- Fitur: Nama Rasi ---
-  function promptConstellationName() {
-    const name = prompt("Nama rasi bintang ini:", constellation.name || "");
+  hideContextMenu();
+}
+function promptConstellationName() {
+  if (contextGroupIdx !== null) {
+    const name = prompt("Nama rasi bintang ini:", groupData[contextGroupIdx].name || "");
     if (name !== null) {
-      constellation.name = name;
-      saveToFirebase();
+      groupData[contextGroupIdx].name = name;
       draw();
     }
-    hideContextMenu();
   }
-  function removeConstellationName() {
-    if (constellation.name) {
+  hideContextMenu();
+}
+function removeConstellationName() {
+  if (contextGroupIdx !== null) {
+    if (groupData[contextGroupIdx].name) {
       if (confirm("Hapus nama rasi?")) {
-        constellation.name = "";
-        saveToFirebase();
+        groupData[contextGroupIdx].name = "";
         draw();
       }
     }
-    hideContextMenu();
   }
-  function changeConstellationColor() {
-    const color = prompt("Masukkan kode warna hex (mis: #FFD700):", constellation.color || "#FFD700");
+  hideContextMenu();
+}
+function changeConstellationColor() {
+  if (contextGroupIdx !== null) {
+    const color = prompt("Masukkan kode warna hex (mis: #FFD700):", groupData[contextGroupIdx].color || "#FFD700");
     if (color && /^#([0-9a-fA-F]{3}){1,2}$/.test(color)) {
-      constellation.color = color;
-      saveToFirebase();
+      groupData[contextGroupIdx].color = color;
       draw();
     } else if (color) {
       alert("Format warna tidak valid. Gunakan hex seperti #FFD700");
     }
-    hideContextMenu();
   }
-  function toggleConstellationName() {
-    constellation.visible = !constellation.visible;
-    updateToggleNameBtn();
-    draw();
-    saveToFirebase();
-  }
-  function updateToggleNameBtn() {
-    toggleNameBtn.textContent = constellation.visible ? "👁️ Sembunyikan Nama Rasi" : "👁️ Tampilkan Nama Rasi";
-  }
+  hideContextMenu();
+}
 
-  // --- Double Tap & Double Click Logic yang benar ---
-  let lastTap = 0;
-  let tapTimeout;
-  canvas.addEventListener("pointerdown", (e) => {
-    clearTimeout(tapTimeout);
-    const now = Date.now();
-    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const clickedStar = findStarAt(x, y);
+// Helper: cari star di posisi tertentu
+function findStarAt(x, y) {
+  return stars.findIndex(star => {
+    const dx = star.x - x;
+    const dy = star.y - y;
+    return Math.sqrt(dx * dx + dy * dy) < 10;
+  });
+}
 
-    if (now - lastTap < 350) {
-      // Double tap
-      if (clickedStar) {
-        showContextMenu(e.clientX, e.clientY, clickedStar);
-      } else {
-        const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
-        if (msg !== null) {
-          stars.push({ x, y, message: msg });
-          saveToFirebase();
-          draw();
-        }
-      }
-      lastTap = 0;
+// Double tap/double click
+let lastTap = 0;
+let tapTimeout;
+canvas.addEventListener("pointerdown", (e) => {
+  clearTimeout(tapTimeout);
+  const now = Date.now();
+  const { x, y } = { x: e.clientX, y: e.clientY };
+  const starIdx = findStarAt(x, y);
+
+  if (now - lastTap < 350) {
+    // Double tap
+    if (starIdx !== -1) {
+      showContextMenu(e.clientX, e.clientY, starIdx);
     } else {
-      lastTap = now;
-      tapTimeout = setTimeout(() => { lastTap = 0; }, 400);
-    }
-  });
-
-  canvas.addEventListener("dblclick", (e) => {
-    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const clickedStar = findStarAt(x, y);
-    if (firstStar && clickedStar && clickedStar !== firstStar) {
-      connections.push([firstStar, clickedStar]);
-      firstStar.highlighted = false;
-      firstStar = null;
-      saveToFirebase();
-      draw();
-      return;
-    }
-    // --- Tambahan: jika klik bintang dan BUKAN mode sambung, tampilkan menu context ---
-    if (clickedStar) {
-      showContextMenu(e.clientX, e.clientY, clickedStar);
-    }
-  });
-
-  document.addEventListener("pointerdown", (e) => {
-    if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
-      hideContextMenu();
-    }
-  });
-
-  canvas.addEventListener("pointermove", (e) => {
-    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-    const hoveredStar = findStarAt(x, y);
-    if (hoveredStar) {
-      starInfo.textContent = `Koordinat: (${hoveredStar.x.toFixed(2)}, ${hoveredStar.y.toFixed(2)})`;
-      starInfo.innerHTML += `<br>Pesan: ${hoveredStar.message || "Tidak ada pesan"}`;
-      const infoRect = starInfo.getBoundingClientRect();
-      let left = e.clientX + 10;
-      let top = e.clientY - (infoRect.height || 40) - 10;
-      if (top < 0) top = e.clientY + 20;
-      if (left + (infoRect.width || 150) > window.innerWidth) {
-        left = window.innerWidth - (infoRect.width || 150) - 10;
-      }
-      starInfo.style.left = left + "px";
-      starInfo.style.top = top + "px";
-      starInfo.style.display = "block";
-    } else {
-      starInfo.style.display = "none";
-    }
-  });
-
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    draw();
-  }
-  window.addEventListener("resize", resizeCanvas);
-  window.addEventListener("orientationchange", resizeCanvas);
-  resizeCanvas();
-
-  loadFromFirebase();
-
-  canvas.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const mouse = toCanvasCoords(e.clientX, e.clientY);
-    const zoom = e.deltaY < 0 ? 1.1 : 0.9;
-    scale *= zoom;
-    offsetX = e.clientX - (mouse.x * scale);
-    offsetY = e.clientY - (mouse.y * scale);
-    draw();
-  }, { passive: false });
-
-  let lastDist = null;
-  canvas.addEventListener("touchmove", (e) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (lastDist) {
-        const zoom = dist / lastDist;
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const center = toCanvasCoords(centerX, centerY);
-        scale *= zoom;
-        offsetX = centerX - (center.x * scale);
-        offsetY = centerY - (center.y * scale);
+      const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
+      if (msg !== null) {
+        stars.push({ x, y, message: msg });
         draw();
       }
-      lastDist = dist;
     }
-  });
-  canvas.addEventListener("touchend", (e) => {
-    if (e.touches.length < 2) lastDist = null;
-  });
-
-  // Drag/pan
-  canvas.addEventListener("pointerdown", (e) => {
-    if (e.button === 1 || (e.pointerType === "touch" && !findStarAt(...Object.values(toCanvasCoords(e.clientX, e.clientY))))) {
-      isDragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-    }
-  });
-  canvas.addEventListener("pointermove", (e) => {
-    if (isDragging) {
-      offsetX += e.clientX - lastX;
-      offsetY += e.clientY - lastY;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      draw();
-    }
-  });
-  canvas.addEventListener("pointerup", () => {
-    isDragging = false;
-  });
-
-  // Expose ke window supaya bisa dipakai inline onclick
-  window.deleteConnectionsOfStar = deleteConnectionsOfStar;
-  window.editSelectedStar = editSelectedStar;
-  window.deleteSelectedStar = deleteSelectedStar;
-  window.startConnectingStars = startConnectingStars;
-  window.resetStars = resetStars;
-  window.promptConstellationName = promptConstellationName;
-  window.removeConstellationName = removeConstellationName;
-  window.changeConstellationColor = changeConstellationColor;
-  window.toggleConstellationName = toggleConstellationName;
-  window.toggleControls = toggleControls;
-
-  function toCanvasCoords(x, y) {
-    return {
-      x: (x - offsetX) / scale,
-      y: (y - offsetY) / scale
-    };
+    lastTap = 0;
+  } else {
+    lastTap = now;
+    tapTimeout = setTimeout(() => { lastTap = 0; }, 400);
   }
+});
+
+// Desktop double click
+canvas.addEventListener("dblclick", (e) => {
+  const { x, y } = { x: e.clientX, y: e.clientY };
+  const starIdx = findStarAt(x, y);
+  if (firstStar !== null && starIdx !== -1 && starIdx !== firstStar) {
+    // Hanya boleh connect bila kedua bintang pada grup yang sama ATAU salah satu belum punya grup
+    const { starToGroup } = detectGroups();
+    const g1 = starToGroup[firstStar];
+    const g2 = starToGroup[starIdx];
+    if (g1 === null && g2 === null) {
+      // Buat grup baru
+      connections.push([firstStar, starIdx]);
+      cachedGroups = null;
+    } else if (g1 !== null && g2 === null) {
+      connections.push([firstStar, starIdx]);
+      cachedGroups = null;
+    } else if (g1 === null && g2 !== null) {
+      connections.push([firstStar, starIdx]);
+      cachedGroups = null;
+    } else if (g1 === g2) {
+      // Sudah satu grup, tetap boleh connect
+      connections.push([firstStar, starIdx]);
+      cachedGroups = null;
+    } else {
+      alert("Tidak bisa menghubungkan dua bintang dari grup/rasi berbeda.");
+    }
+    firstStar = null;
+    draw();
+    return;
+  }
+  // Jika klik bintang tanpa mode sambung, tampilkan menu context
+  if (starIdx !== -1) {
+    showContextMenu(e.clientX, e.clientY, starIdx);
+  }
+});
+
+document.addEventListener("pointerdown", (e) => {
+  if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+});
+
+canvas.addEventListener("pointermove", (e) => {
+  const { x, y } = { x: e.clientX, y: e.clientY };
+  const starIdx = findStarAt(x, y);
+  if (starIdx !== -1) {
+    starInfo.textContent = `Koordinat: (${stars[starIdx].x.toFixed(2)}, ${stars[starIdx].y.toFixed(2)})`;
+    starInfo.innerHTML += `<br>Pesan: ${stars[starIdx].message || "Tidak ada pesan"}`;
+    const infoRect = starInfo.getBoundingClientRect();
+    let left = e.clientX + 10;
+    let top = e.clientY - (infoRect.height || 40) - 10;
+    if (top < 0) top = e.clientY + 20;
+    if (left + (infoRect.width || 150) > window.innerWidth) {
+      left = window.innerWidth - (infoRect.width || 150) - 10;
+    }
+    starInfo.style.left = left + "px";
+    starInfo.style.top = top + "px";
+    starInfo.style.display = "block";
+  } else {
+    starInfo.style.display = "none";
+  }
+});
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  draw();
+}
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", resizeCanvas);
+resizeCanvas();
+
+window.deleteConnectionsOfStar = deleteConnectionsOfStar;
+window.editSelectedStar = editSelectedStar;
+window.deleteSelectedStar = deleteSelectedStar;
+window.startConnectingStars = startConnectingStars;
+window.resetStars = resetStars;
+window.promptConstellationName = promptConstellationName;
+window.removeConstellationName = removeConstellationName;
+window.changeConstellationColor = changeConstellationColor;
+window.toggleControls = toggleControls;
+
 </script>
 </body>
 </html>
