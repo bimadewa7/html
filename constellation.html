@@ -101,16 +101,17 @@ const db = getDatabase(app);
 const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
-// Banyak bintik bintang kecil diperbanyak
-const BG_STAR_COUNT = 400;
+// Bintik kecil putih tidak terlalu banyak agar tetap tajam
+const BG_STAR_COUNT = 80;
 let bgStars = [];
 function genBgStars() {
+  const dpr = window.devicePixelRatio || 1;
   bgStars = [];
   for (let i = 0; i < BG_STAR_COUNT; ++i) {
     bgStars.push({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      r: Math.random() * 1.3 + 0.2 // 0.2-1.5 px
+      r: (Math.random() * 1.3 + 0.7) * dpr // 0.7-2px, supaya tetap terlihat di retina
     });
   }
 }
@@ -144,14 +145,12 @@ window.toggleConstellationNames = function() {
 };
 
 function draw() {
-  // ======= CANVAS HI-DPI FIX (RETINA, MOBILE) =======
-  // canvas.width and canvas.height should have been set to CSS px * dpr.
-  // This function assumes that ctx is already scaled with dpr.
-  // Draw background static (NOT zoomed), so use ctx.setTransform(1,0,0,1,0,0)
+  // LATAR: gradient + bintik bintang kecil putih (tidak terlalu banyak)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   ctx.save();
-  ctx.globalAlpha = 0.65;
+  ctx.globalAlpha = 0.75;
   ctx.fillStyle = "#fff";
   if (typeof bgStars !== "undefined") {
     bgStars.forEach(star => {
@@ -195,7 +194,6 @@ function draw() {
     rasiGroups.forEach(grp => {
       if (grp.name && grp.starIdxs.length) {
         const starOrder = [...grp.starIdxs].sort((a,b)=>a-b);
-        // bounding box
         let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
         grp.starIdxs.forEach(idx=>{
           const s = stars[idx];
@@ -205,20 +203,13 @@ function draw() {
         ctx.save();
         ctx.textAlign = "center";
         const centerX = (minX+maxX)/2;
-
-        // Ukuran font nama rasi menyesuaikan besar rasi, tapi minimal 18 dan maksimal 38
         let rasiWidth = Math.max(1, maxX - minX);
         let fontSize = Math.max(18, Math.min(38, Math.round(rasiWidth / 8)));
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.fillStyle = grp.color || "#FFD700";
-        
-        // Jarak nama rasi dari bintang
         const paddingNameToStars = 46;
         const paddingMsgToStars = 22;
-
         ctx.fillText(grp.name, centerX, minY - paddingNameToStars);
-
-        // Gabungan pesan semua bintang dalam tanda kutip
         if (showMessages) {
           const msgJoin = starOrder.map(idx => (stars[idx].message||"").trim()).filter(Boolean).join(' ');
           ctx.font = "14px Arial";
@@ -231,7 +222,6 @@ function draw() {
   }
 }
 
-// HI-DPI/RETINA/MOBILE canvas fix
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
   canvas.width = window.innerWidth * dpr;
@@ -418,7 +408,6 @@ document.getElementById("deleteRasiName").onclick = function() {
 };
 
 canvas.addEventListener("pointerup", (e) => {
-  // Untuk koneksi antar bintang (setelah klik "Sambung Bintang")
   if (firstStar) {
     const { x, y } = toCanvasCoords(e.clientX, e.clientY);
     const clickedStar = findStarAt(x, y);
@@ -435,7 +424,7 @@ canvas.addEventListener("pointerup", (e) => {
 });
 
 canvas.addEventListener("dblclick", (e) => {
-  if (firstStar) return; // ignore if in connect mode
+  if (firstStar) return;
   const { x, y } = toCanvasCoords(e.clientX, e.clientY);
   const starIdx = findStarIdxAt(x, y);
   if (starIdx != -1) {
@@ -516,7 +505,6 @@ canvas.addEventListener("wheel", (e) => {
   const mouse = toCanvasCoords(e.clientX, e.clientY);
   const zoom = e.deltaY < 0 ? 1.1 : 0.9;
   scale *= zoom;
-  // Batasi zoom out/in
   const MIN_SCALE = 0.3, MAX_SCALE = 5;
   if (scale < MIN_SCALE) scale = MIN_SCALE;
   if (scale > MAX_SCALE) scale = MAX_SCALE;
@@ -537,7 +525,6 @@ canvas.addEventListener("touchmove", (e) => {
       const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const center = toCanvasCoords(centerX, centerY);
       scale *= zoom;
-      // Batasi zoom
       const MIN_SCALE = 0.3, MAX_SCALE = 5;
       if (scale < MIN_SCALE) scale = MIN_SCALE;
       if (scale > MAX_SCALE) scale = MAX_SCALE;
@@ -589,7 +576,6 @@ canvas.addEventListener("touchmove", (e) => {
 canvas.addEventListener("touchend", () => { isDragging = false; });
 
 function toCanvasCoords(x, y) {
-  // Perhatikan bahwa semua perhitungan sudah di-skala dpr (karena ctx.scale di resizeCanvas)
   return { x: (x - offsetX) / scale, y: (y - offsetY) / scale };
 }
 </script>
