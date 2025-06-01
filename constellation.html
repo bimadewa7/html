@@ -86,7 +86,7 @@
   </div>
   <button onclick="resetStars()">🔄 Reset Semua</button>
   <button id="showNameBtn">🌌 Tampilkan Nama Rasi</button>
-  <button id="showMsgBtn" style="display:none;">💬 Tampilkan Pesan Rasi</button>
+  <button id="showMsgBtn">💬 Tampilkan Pesan Rasi</button>
 </div>
 <div id="starInfo"></div>
 
@@ -132,23 +132,30 @@ const showMsgBtn = document.getElementById("showMsgBtn");
 
 let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
 
-// --- Tombol show/hide nama dan pesan rasi (2 fase) ---
+// --- Tombol show/hide nama dan pesan rasi (bisa diulang-ulang) ---
 showNameBtn.onclick = function() {
-  showNames = true;
-  showMessages = false;
-  showNameBtn.style.display = "none";
-  showMsgBtn.style.display = "";
+  // toggle hanya nama rasi
+  if (showNames && !showMessages) {
+    showNames = false;
+    showMessages = false;
+  } else {
+    showNames = true;
+    showMessages = false;
+  }
   draw();
 };
 showMsgBtn.onclick = function() {
-  showNames = true;
-  showMessages = true;
-  showMsgBtn.style.display = "none";
+  // toggle pesan rasi (harus ada nama rasi dulu)
+  if (showNames && showMessages) {
+    showNames = true;
+    showMessages = false;
+  } else {
+    showNames = true;
+    showMessages = true;
+  }
   draw();
 };
 function resetShowRasiBtns() {
-  showNameBtn.style.display = "";
-  showMsgBtn.style.display = "none";
   showNames = false;
   showMessages = false;
 }
@@ -163,7 +170,6 @@ function draw() {
 
   ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
 
-  // Draw connections
   ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
   ctx.lineWidth = 1.5;
   connections.forEach(([a, b]) => {
@@ -172,7 +178,6 @@ function draw() {
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
   });
-  // Draw stars
   stars.forEach(star => {
     ctx.save();
     ctx.shadowColor = star.highlighted ? "#FF0" : "#fff";
@@ -184,7 +189,6 @@ function draw() {
     ctx.restore();
   });
 
-  // --- Show rasi name & message ---
   if (showNames) {
     rasiGroups.forEach(grp => {
       if (grp.name && grp.starIdxs.length) {
@@ -217,12 +221,10 @@ function draw() {
   }
 }
 
-// --- Setting canvas agar touch akurat di HP ---
 function resizeCanvas() {
-  // Batasi dpr supaya ringan di hp, dan pastikan dpr selalu dipakai di semua event
   let dpr = window.devicePixelRatio || 1;
-  if (window.innerWidth < 800) dpr = Math.min(dpr, 2); // HP jangan terlalu besar
-  else dpr = Math.min(dpr, 2.5); // Desktop/Tablet boleh lebih tajam
+  if (window.innerWidth < 800) dpr = Math.min(dpr, 2);
+  else dpr = Math.min(dpr, 2.5);
   canvas.width = Math.round(window.innerWidth * dpr);
   canvas.height = Math.round(window.innerHeight * dpr);
   canvas.style.width = window.innerWidth + "px";
@@ -230,7 +232,6 @@ function resizeCanvas() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
 
-  // Responsive background: aspect ratio same as screen, area minimal
   if (window.innerWidth / window.innerHeight > MIN_BG_WIDTH / MIN_BG_HEIGHT) {
     bgWidth = MIN_BG_WIDTH;
     bgHeight = MIN_BG_WIDTH * (window.innerHeight / window.innerWidth);
@@ -424,7 +425,6 @@ canvas.addEventListener("touchend", (e) => {
   if (firstStar) {
     const touch = e.changedTouches[0];
     const rect = canvas.getBoundingClientRect();
-    // touch akurat: perhatikan dpr dan offset canvas
     const x = (touch.clientX - rect.left - offsetX) / scale;
     const y = (touch.clientY - rect.top - offsetY) / scale;
     const clickedIdx = findStarIdxAt(x, y);
@@ -441,7 +441,6 @@ canvas.addEventListener("touchend", (e) => {
     const now = Date.now();
     const touch = e.changedTouches[0];
     const rect = canvas.getBoundingClientRect();
-    // touch akurat: perhatikan dpr dan offset canvas
     const x = (touch.clientX - rect.left - offsetX) / scale;
     const y = (touch.clientY - rect.top - offsetY) / scale;
     const starIdx = findStarIdxAt(x, y);
@@ -644,7 +643,6 @@ toggleBtn.onclick = function() {
     toggleBtn.title = "Tampilkan menu";
   }
 };
-// Reset tombol rasi setiap reset atau reload
 resetShowRasiBtns();
 </script>
 </body>
