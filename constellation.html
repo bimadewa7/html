@@ -41,21 +41,27 @@
     }
     #closeBtn {
       position: absolute;
-      top: 3px;
-      right: 3px;
+      top: -16px;
+      right: -16px;
       background: #ff5555;
       color: white;
       border-radius: 50%;
-      width: 23px;
-      height: 23px;
-      font-size: 17px;
+      width: 32px;
+      height: 32px;
+      font-size: 22px;
       cursor: pointer;
       text-align: center;
-      line-height: 23px;
+      line-height: 32px;
       border: none;
+      box-shadow: 0 0 6px #2229;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 20;
+      transition: background 0.2s;
+    }
+    #closeBtn:hover {
+      background: #ff2222;
     }
     #controls {
       position: absolute;
@@ -144,12 +150,6 @@
       filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 24px #fff) drop-shadow(0 0 36px #ff0);
       transition: filter 0.2s;
     }
-    .constellation-name {
-      font-weight: bold;
-      text-shadow: 1px 1px 4px #000, 0 0 2px #fff;
-      pointer-events: none;
-      user-select: none;
-    }
     .group-label {
       font-weight: bold;
       text-shadow: 1px 1px 4px #000, 0 0 2px #fff;
@@ -180,10 +180,10 @@
         padding: 3vw;
       }
       #closeBtn {
-        width: 8vw;
-        height: 8vw;
+        width: 10vw;
+        height: 10vw;
         font-size: 6vw;
-        line-height: 8vw;
+        line-height: 10vw;
       }
       #hamburgerBtn {
         width: 12vw;
@@ -191,27 +191,65 @@
         font-size: 7vw;
       }
     }
+    #groupColorChoices {
+      margin-top:10px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    #groupColorChoices .color-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border:2px solid #aaa;
+      cursor:pointer;
+      outline:none;
+      margin:0;
+      padding:0;
+      display:inline-block;
+      transition: border 0.1s;
+    }
+    #groupColorChoices .color-btn.selected {
+      border:3px solid #444;
+    }
+    #customColorPicker {
+      width:28px;
+      height:28px;
+      vertical-align:middle;
+      padding:0;
+      border:none;
+      background:none;
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
 <canvas id="sky"></canvas>
 <div id="messageBox"></div>
 <div id="contextMenu">
-  <div id="starMenuSection" style="display:none;">
+  <button id="closeBtn" onclick="hideContextMenu()">✕</button>
+  <div id="starGroupMenuSection" style="margin-top:18px;">
     <button onclick="editSelectedStar()">✏️ Edit Pesan</button>
     <button onclick="deleteSelectedStar()">🗑️ Hapus Bintang</button>
     <button onclick="startConnectingStars()">🔗 Sambung Bintang</button>
     <button onclick="deleteConnectionsOfStar()">❌ Hapus Sambungan</button>
     <hr>
-  </div>
-  <div id="groupMenuSection" style="display:none;">
     <button onclick="promptGroupName()">➕ Nama Grup</button>
     <button onclick="removeGroupName()">🗑️ Hapus Nama Grup</button>
-    <button onclick="changeGroupColor()">🌈 Ganti Warna Nama</button>
     <button onclick="toggleGroupNameVisibility()" id="toggleGroupNameBtn">👁️ Sembunyikan Nama Grup</button>
-    <hr>
+    <div id="groupColorChoices">
+      <span style="font-size:13px;margin-right:4px;">🌈 Warna Nama:</span>
+      <button class="color-btn" style="background:#FFD700;" data-color="#FFD700"></button>
+      <button class="color-btn" style="background:#00E1FF;" data-color="#00E1FF"></button>
+      <button class="color-btn" style="background:#FF99DD;" data-color="#FF99DD"></button>
+      <button class="color-btn" style="background:#FF5A36;" data-color="#FF5A36"></button>
+      <button class="color-btn" style="background:#4FFF30;" data-color="#4FFF30"></button>
+      <button class="color-btn" style="background:#FFF;" data-color="#FFF"></button>
+      <button class="color-btn" style="background:#A076FF;" data-color="#A076FF"></button>
+      <input type="color" id="customColorPicker" title="Custom">
+    </div>
   </div>
-  <div id="closeBtn" onclick="hideContextMenu()">✕</div>
 </div>
 <button id="hamburgerBtn" title="Buka Menu" aria-label="Buka Menu" style="display:block;">
   <span id="hamburgerIcon">&#9776;</span>
@@ -221,7 +259,6 @@
   <div>✨ 2x Tap/Klik untuk menambah/mengelola bintang<br>🔗 Sambung bintang dengan mode sambung</div>
   <button onclick="resetStars()">🔄 Reset Semua</button>
   <hr style="border:1px solid #222">
-  <div id="groupControlButtons"></div>
 </div>
 <div id="starInfo"></div>
 <script type="module">
@@ -257,13 +294,14 @@
 
   const messageBox = document.getElementById("messageBox");
   const contextMenu = document.getElementById("contextMenu");
-  const starMenuSection = document.getElementById("starMenuSection");
-  const groupMenuSection = document.getElementById("groupMenuSection");
+  const starGroupMenuSection = document.getElementById("starGroupMenuSection");
   const controls = document.getElementById("controls");
   const hamburgerBtn = document.getElementById("hamburgerBtn");
   const starInfo = document.getElementById("starInfo");
-  const groupControlButtons = document.getElementById("groupControlButtons");
   const toggleGroupNameBtn = document.getElementById("toggleGroupNameBtn");
+  const groupColorChoices = document.getElementById("groupColorChoices");
+  const colorBtns = groupColorChoices.querySelectorAll(".color-btn");
+  const customColorPicker = document.getElementById("customColorPicker");
 
   let scale = 1;
   let offsetX = 0;
@@ -309,46 +347,23 @@
       };
     });
     starGroups = newStarGroups;
-    updateGroupControlButtons();
-  }
-
-  function updateGroupControlButtons() {
-    groupControlButtons.innerHTML = "";
-    if (starGroups.length === 0) return;
-    starGroups.forEach((group, idx) => {
-      if (group.starIndices.length < 2) return;
-      const label = document.createElement("span");
-      label.textContent = (group.name || `Grup ${idx+1}`);
-      label.style.background = group.color || "#FFD700";
-      label.style.padding = "2px 12px";
-      label.style.margin = "0 4px 4px 0";
-      label.style.borderRadius = "6px";
-      groupControlButtons.appendChild(label);
-    });
   }
 
   function draw() {
     ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
     ctx.clearRect((-offsetX) / scale, (-offsetY) / scale, canvas.width / scale, canvas.height / scale);
     buildGroups();
-    starGroups.forEach((group, groupIdx) => {
-      if (!group.visible) return;
-      ctx.save();
-      ctx.strokeStyle = group.color || "#FFD700";
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 1.7;
-      group.starIndices.forEach(aIdx => {
-        connections.forEach(([i1, i2]) => {
-          if (group.starIndices.includes(i1) && group.starIndices.includes(i2)) {
-            ctx.beginPath();
-            ctx.moveTo(stars[i1].x, stars[i1].y);
-            ctx.lineTo(stars[i2].x, stars[i2].y);
-            ctx.stroke();
-          }
-        });
-      });
-      ctx.restore();
+    // Draw connections in default white
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 1.5;
+    connections.forEach(([i1, i2]) => {
+      ctx.beginPath();
+      ctx.moveTo(stars[i1].x, stars[i1].y);
+      ctx.lineTo(stars[i2].x, stars[i2].y);
+      ctx.stroke();
     });
+    ctx.restore();
     stars.forEach((star, idx) => {
       ctx.save();
       if (!star.highlighted) {
@@ -406,7 +421,6 @@
         starGroups = (data.starGroups || []).map(g => ({
           ...g, starIndices: [...g.starIndices]
         }));
-        updateGroupControlButtons();
         draw();
       }
     });
@@ -419,18 +433,46 @@
     firstStar = null;
     connectMode = false;
     hideContextMenu();
-    updateGroupControlButtons();
     saveToFirebase();
     draw();
   }
+
+  function setGroupColor(color) {
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
+    starGroups[contextGroupIdx].color = color;
+    saveToFirebase();
+    draw();
+    hideContextMenu();
+  }
+
+  function updateColorChoiceUI() {
+    // Set border on selected color
+    if (contextGroupIdx == null || !starGroups[contextGroupIdx]) return;
+    const selColor = (starGroups[contextGroupIdx].color || "#FFD700").toLowerCase();
+    colorBtns.forEach(btn => {
+      if (btn.getAttribute("data-color").toLowerCase() === selColor) {
+        btn.classList.add("selected");
+      } else {
+        btn.classList.remove("selected");
+      }
+    });
+    if (customColorPicker) customColorPicker.value = selColor.startsWith("#") ? selColor : "#FFD700";
+  }
+
   function showContextMenu(x, y, starIdx = null, groupIdx = null) {
     contextStar = starIdx !== null ? stars[starIdx] : null;
-    contextGroupIdx = groupIdx;
-    starMenuSection.style.display = contextStar !== null ? "block" : "none";
-    groupMenuSection.style.display = groupIdx !== null ? "block" : "none";
-    if (groupIdx !== null) {
-      toggleGroupNameBtn.textContent = starGroups[groupIdx].visible ? "👁️ Sembunyikan Nama Grup" : "👁️ Tampilkan Nama Grup";
+    contextGroupIdx = groupIdx !== undefined && groupIdx !== null ? groupIdx : getGroupIdxByStarIdx(starIdx);
+
+    let color = "#FFD700";
+    if (contextGroupIdx !== null && contextGroupIdx !== undefined && starGroups[contextGroupIdx]) {
+      toggleGroupNameBtn.textContent = starGroups[contextGroupIdx].visible ? "👁️ Sembunyikan Nama Grup" : "👁️ Tampilkan Nama Grup";
+      color = starGroups[contextGroupIdx].color || "#FFD700";
+    } else {
+      toggleGroupNameBtn.textContent = "👁️ Nama Grup";
     }
+    // Highlight selected color
+    updateColorChoiceUI();
+
     contextMenu.style.left = x + "px";
     contextMenu.style.top = y + "px";
     contextMenu.style.display = "block";
@@ -489,50 +531,40 @@
     hideContextMenu();
   }
   function promptGroupName() {
-    if (contextGroupIdx === null) return;
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
     const g = starGroups[contextGroupIdx];
     const name = prompt("Nama grup:", g.name || "");
     if (name !== null) {
       g.name = name;
       saveToFirebase();
       draw();
-      updateGroupControlButtons();
     }
     hideContextMenu();
   }
   function removeGroupName() {
-    if (contextGroupIdx === null) return;
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
     const g = starGroups[contextGroupIdx];
     if (g.name && confirm("Hapus nama grup?")) {
       g.name = "";
       saveToFirebase();
       draw();
-      updateGroupControlButtons();
-    }
-    hideContextMenu();
-  }
-  function changeGroupColor() {
-    if (contextGroupIdx === null) return;
-    const g = starGroups[contextGroupIdx];
-    const color = prompt("Masukkan kode warna hex (mis: #FFD700):", g.color || "#FFD700");
-    if (color && /^#([0-9a-fA-F]{3}){1,2}$/.test(color)) {
-      g.color = color;
-      saveToFirebase();
-      draw();
-      updateGroupControlButtons();
-    } else if (color) {
-      alert("Format warna tidak valid. Gunakan hex seperti #FFD700");
     }
     hideContextMenu();
   }
   function toggleGroupNameVisibility() {
-    if (contextGroupIdx === null) return;
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
     const g = starGroups[contextGroupIdx];
     g.visible = !g.visible;
     saveToFirebase();
     draw();
-    updateGroupControlButtons();
     hideContextMenu();
+  }
+  function getGroupIdxByStarIdx(starIdx) {
+    if (starIdx == null) return null;
+    for (let gi = 0; gi < starGroups.length; gi++) {
+      if (starGroups[gi].starIndices.includes(starIdx)) return gi;
+    }
+    return null;
   }
   function findStarAt(x, y) {
     return stars.findIndex(star => {
@@ -600,9 +632,9 @@
 
   function handleMenu(e, x, y) {
     const starIdx = findStarAt(x, y);
-    const groupIdx = starIdx < 0 ? findGroupAt(x, y) : null;
+    const groupIdx = starIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(starIdx);
     if (starIdx >= 0) {
-      showContextMenu(e.clientX, e.clientY, starIdx, null);
+      showContextMenu(e.clientX, e.clientY, starIdx, groupIdx);
     } else if (groupIdx != null) {
       showContextMenu(e.clientX, e.clientY, null, groupIdx);
     } else {
@@ -630,7 +662,7 @@
     pointerDownX = x;
     pointerDownY = y;
     pointerDownStarIdx = findStarAt(x, y);
-    pointerDownGroupIdx = pointerDownStarIdx < 0 ? findGroupAt(x, y) : null;
+    pointerDownGroupIdx = pointerDownStarIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(pointerDownStarIdx);
 
     // Connection mode
     if (connectMode && firstStar != null && pointerDownStarIdx >= 0 && pointerDownStarIdx !== firstStar) {
@@ -738,6 +770,18 @@
     isDragging = false;
   });
 
+  // Set up color button events
+  colorBtns.forEach(btn => {
+    btn.addEventListener("click", e => {
+      setGroupColor(btn.getAttribute("data-color"));
+    });
+  });
+  if (customColorPicker) {
+    customColorPicker.addEventListener("change", e => {
+      setGroupColor(customColorPicker.value);
+    });
+  }
+
   window.deleteConnectionsOfStar = deleteConnectionsOfStar;
   window.editSelectedStar = editSelectedStar;
   window.deleteSelectedStar = deleteSelectedStar;
@@ -745,7 +789,6 @@
   window.resetStars = resetStars;
   window.promptGroupName = promptGroupName;
   window.removeGroupName = removeGroupName;
-  window.changeGroupColor = changeGroupColor;
   window.toggleGroupNameVisibility = toggleGroupNameVisibility;
   window.toggleControls = toggleControls;
 
