@@ -39,7 +39,6 @@
     #contextMenu button:hover {
       background: #f0f0f0;
     }
-    /* No #closeBtn style anymore */
     #controls {
       position: absolute;
       top: 10px;
@@ -199,7 +198,6 @@
 <canvas id="sky"></canvas>
 <div id="messageBox"></div>
 <div id="contextMenu">
-  <!-- No close button here -->
   <div id="starGroupMenuSection" style="margin-top:2px;">
     <button onclick="editSelectedStar()">✏️ Edit Pesan</button>
     <button onclick="deleteSelectedStar()">🗑️ Hapus Bintang</button>
@@ -350,6 +348,7 @@
       ctx.fill();
       ctx.restore();
     });
+    // ====== MODIFIKASI DI SINI: Nama grup di bawah ======
     starGroups.forEach((group, idx) => {
       if (!group.visible || !group.name || group.starIndices.length < 2) return;
       let xs = [], ys = [];
@@ -360,19 +359,20 @@
       const minX = Math.min(...xs), maxX = Math.max(...xs);
       const minY = Math.min(...ys), maxY = Math.max(...ys);
       const centerX = (minX + maxX) / 2;
-      const topY = minY;
+      const bottomY = maxY;
       const nameOffset = 40;
       ctx.save();
       ctx.font = "bold 19px Arial";
       ctx.fillStyle = group.color || "#FFD700";
       ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
+      ctx.textBaseline = "top";
       ctx.shadowColor = "#000";
       ctx.shadowBlur = 8;
       ctx.globalAlpha = 0.97;
-      ctx.fillText(group.name, centerX, topY - nameOffset);
+      ctx.fillText(group.name, centerX, bottomY + nameOffset);
       ctx.restore();
     });
+    // ====================================================
   }
 
   function saveToFirebase() {
@@ -398,7 +398,6 @@
   }
 
   function resetStars() {
-    // Password prompt
     const pw = prompt("Masukkan password untuk reset:");
     if (pw !== "supernenechi123") {
       alert("Password salah!");
@@ -424,7 +423,6 @@
   }
 
   function updateColorChoiceUI() {
-    // Set border on selected color
     if (contextGroupIdx == null || !starGroups[contextGroupIdx]) return;
     const selColor = (starGroups[contextGroupIdx].color || "#FFD700").toLowerCase();
     colorBtns.forEach(btn => {
