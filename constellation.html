@@ -64,7 +64,7 @@
   </style>
 </head>
 <body>
-<button id="toggleControlsBtn" title="Tampilkan/sembunyikan menu">☰</button>
+<button id="toggleControlsBtn" title="Tampilkan/sembunyikan menu">✖</button>
 <canvas id="sky"></canvas>
 <div id="messageBox"></div>
 <div id="starMenu">
@@ -85,17 +85,15 @@
     🔗 Pilih Sambung Bintang lalu tekan bintang kedua<br>
   </div>
   <button onclick="resetStars()">🔄 Reset Semua</button>
-  <button onclick="toggleConstellationNames()">🌌 Tampil/Sembunyi Nama/Isi Rasi</button>
+  <button id="showNameBtn">🌌 Tampilkan Nama Rasi</button>
+  <button id="showMsgBtn" style="display:none;">💬 Tampilkan Pesan Rasi</button>
 </div>
 <div id="starInfo"></div>
 
 <script type="module">
+// (Firebase import dan config tetap seperti sebelumnya, tidak ditampilkan di sini untuk ringkas)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
-
-// --- Set ukuran minimal background tetap di semua device ---
-const MIN_BG_WIDTH = 2400;
-const MIN_BG_HEIGHT = 1600;
 
 const firebaseConfig = {
   apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
@@ -115,6 +113,7 @@ const canvas = document.getElementById("sky");
 const ctx = canvas.getContext("2d");
 
 // Responsive background size: aspect ratio always follows screen
+const MIN_BG_WIDTH = 2400, MIN_BG_HEIGHT = 1600;
 let bgWidth = MIN_BG_WIDTH, bgHeight = MIN_BG_HEIGHT;
 let MIN_SCALE = 1, MAX_SCALE = 5;
 
@@ -128,28 +127,40 @@ let selectedStarIdx = null;
 const messageBox = document.getElementById("messageBox");
 const starMenu = document.getElementById("starMenu");
 const starInfo = document.getElementById("starInfo");
+const showNameBtn = document.getElementById("showNameBtn");
+const showMsgBtn = document.getElementById("showMsgBtn");
 
 let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, lastX = 0, lastY = 0;
 
-window.toggleConstellationNames = function() {
-  if (!showNames && !showMessages) {
-    showNames = true;
-    showMessages = false;
-  } else if (showNames && !showMessages) {
-    showNames = true;
-    showMessages = true;
-  } else {
-    showNames = false;
-    showMessages = false;
-  }
+// --- Tombol show/hide nama dan pesan rasi (2 fase) ---
+showNameBtn.onclick = function() {
+  showNames = true;
+  showMessages = false;
+  showNameBtn.style.display = "none";
+  showMsgBtn.style.display = "";
   draw();
 };
+showMsgBtn.onclick = function() {
+  showNames = true;
+  showMessages = true;
+  showMsgBtn.style.display = "none";
+  draw();
+};
+function resetShowRasiBtns() {
+  showNameBtn.style.display = "";
+  showMsgBtn.style.display = "none";
+  showNames = false;
+  showMessages = false;
+}
+function hideAllRasiNames() {
+  resetShowRasiBtns();
+  draw();
+}
 
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Semua objek utama di-zoom/pan
   ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
 
   // Draw connections
@@ -161,16 +172,11 @@ function draw() {
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
   });
-  // Draw stars (big)
+  // Draw stars
   stars.forEach(star => {
     ctx.save();
-    if (!star.highlighted) {
-      ctx.shadowColor = "#fff";
-      ctx.shadowBlur = 18;
-    } else {
-      ctx.shadowColor = "#FF0";
-      ctx.shadowBlur = 24;
-    }
+    ctx.shadowColor = star.highlighted ? "#FF0" : "#fff";
+    ctx.shadowBlur = star.highlighted ? 24 : 18;
     ctx.beginPath();
     ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
     ctx.fillStyle = star.highlighted ? "#FF0" : "white";
@@ -178,6 +184,7 @@ function draw() {
     ctx.restore();
   });
 
+  // --- Show rasi name & message ---
   if (showNames) {
     rasiGroups.forEach(grp => {
       if (grp.name && grp.starIdxs.length) {
@@ -199,10 +206,11 @@ function draw() {
         const paddingMsgToStars = 22;
         ctx.fillText(grp.name, centerX, minY - paddingNameToStars);
         if (showMessages) {
+          // --- Pesan diberi tanda kutip satu ---
           const msgJoin = starOrder.map(idx => (stars[idx].message||"").trim()).filter(Boolean).join(' ');
           ctx.font = "14px Arial";
           ctx.fillStyle = "#fff";
-          ctx.fillText(msgJoin ? `"${msgJoin}"` : '', centerX, minY - paddingMsgToStars);
+          ctx.fillText(msgJoin ? `'${msgJoin}'` : '', centerX, minY - paddingMsgToStars);
         }
         ctx.restore();
       }
@@ -211,7 +219,6 @@ function draw() {
 }
 
 function resizeCanvas() {
-  // Batasi dpr agar tidak berat di HP
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = window.innerWidth * dpr;
   canvas.height = window.innerHeight * dpr;
@@ -220,8 +227,6 @@ function resizeCanvas() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
 
-  // Responsive background: aspect ratio same as screen
-  // Tapi area minimal = 2400x1600 (atau bisa kamu ganti)
   if (window.innerWidth / window.innerHeight > MIN_BG_WIDTH / MIN_BG_HEIGHT) {
     bgWidth = MIN_BG_WIDTH;
     bgHeight = MIN_BG_WIDTH * (window.innerHeight / window.innerWidth);
@@ -229,12 +234,7 @@ function resizeCanvas() {
     bgHeight = MIN_BG_HEIGHT;
     bgWidth = MIN_BG_HEIGHT * (window.innerWidth / window.innerHeight);
   }
-
-  // Batas zoom out: background tidak bisa lebih kecil dari area minimal (1x ukuran tetap, tidak pernah lebih kecil)
-  MIN_SCALE = Math.max(
-    window.innerWidth / bgWidth,
-    window.innerHeight / bgHeight
-  );
+  MIN_SCALE = Math.max(window.innerWidth / bgWidth, window.innerHeight / bgHeight);
   scale = MIN_SCALE;
   offsetX = 0;
   offsetY = 0;
@@ -274,6 +274,7 @@ function resetStars() {
   rasiGroups = [];
   firstStar = null;
   hideStarMenu();
+  resetShowRasiBtns();
   saveToFirebase();
   draw();
 }
@@ -607,7 +608,7 @@ function toCanvasCoords(x, y) {
   return { x: (x - offsetX) / scale, y: (y - offsetY) / scale };
 }
 
-// Tombol sembunyi/tampil controls
+// --- Tombol sembunyi/tampil controls ---
 const controls = document.getElementById('controls');
 const toggleBtn = document.getElementById('toggleControlsBtn');
 let controlsVisible = true;
@@ -623,9 +624,8 @@ toggleBtn.onclick = function() {
     toggleBtn.title = "Tampilkan menu";
   }
 };
-// Default: menu tampil, tombol ✖ (close)
-toggleBtn.textContent = '✖';
-toggleBtn.title = "Sembunyikan menu";
+// Reset tombol rasi setiap reset atau reload
+resetShowRasiBtns();
 </script>
 </body>
 </html>
