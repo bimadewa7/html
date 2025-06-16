@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pink Envelope</title>
+    <script type="text/javascript" nonce="bc81180a0cd3458390d1100d6f3" src="//local.adguard.org?ts=1746949347948&amp;type=content-script&amp;dmn=heryyy.github.io&amp;css=1&amp;js=1&amp;gcss=1&amp;rel=1&amp;rji=1"></script>
+<script type="text/javascript" nonce="bc81180a0cd3458390d1100d6f3" src="//local.adguard.org?ts=1746949347948&amp;name=AdGuard%20Popup%20Blocker&amp;name=AdGuard%20Assistant&amp;name=AdGuard%20Extra&amp;type=user-script"></script><link href="https://fonts.googleapis.com/css2?family=Handlee&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-env: #fcf82d;
+            --color-env2: #fce148;
+            --color-flap: #ffea8d;
+            --color-bg: #faafe2;
+            --color-heart: #ff85a2;
+            --color-sparkle: #fff;
+            --wax-red: #c04040;
+        }
+        #envelope {
+            position: relative;
+            width: 420px;
+            height: 270px;
+            border-bottom-left-radius: 9px;
+            border-bottom-right-radius: 9px;
+            margin: 0 auto;
+            top: 200px;
+            background-color: var(--color-flap);
+            cursor: pointer;
+        }
+
+        .front {
+            position: absolute;
+            width: 0;
+            height: 0;
+            z-index: 3;
+        }
+
+        .flap {
+            border-left: 210px solid transparent;
+            border-right: 210px solid transparent;
+            border-bottom: 123px solid transparent;
+            border-top: 147px solid var(--color-flap);
+            transform-origin: top;
+            pointer-events: none;
+        }
+
+        .pocket {
+            border-left: 210px solid var(--color-env);
+            border-right: 210px solid var(--color-env);
+            border-bottom: 135px solid var(--color-env2);
+            border-top: 135px solid transparent;
+            border-bottom-left-radius: 9px;
+            border-bottom-right-radius: 9px;
+        }
+
+        .letter {
+            position: relative;
+            background-color: #ffffff;
+            width: 90%;
+            margin: 0 auto;
+            height: 90%;
+            top: 5%;
+            border-radius: 9px;
+            padding: 22px;
+            box-sizing: border-box;
+        }
+
+        .letter:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-image: linear-gradient(180deg, 
+            rgba(255,231,236,1.00) 100%);
+        }
+
+        .message {
+            position: relative;
+            z-index: 2;
+            font-family: 'Handlee', cursive;
+            color: #020000;
+            text-align: center;
+            line-height: 1;
+            padding-top: 0px;
+            font-weight: bold;
+        }
+
+        .message p {
+            margin: 15px 0;
+            font-size: 1.2em;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .envlope-wrapper {
+            height: 570px;
+            margin-top: 75px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .open .flap {
+            transform: rotateX(180deg);
+            transition: transform 0.4s ease, z-index 0.6s;
+            z-index: 1;
+        }
+
+        .close .flap {
+            transform: rotateX(0deg);
+            transition: transform 0.4s 0.6s ease, z-index 1s;
+            z-index: 5;
+        }
+
+        .close .letter {
+            transform: translateY(0px); 
+            transition: transform 0.4s ease, z-index 1s;
+            z-index: 1;
+        }
+
+        .open .letter {
+            transform: translateY(-90px) rotate(-2deg);
+            transition: transform 0.4s 0.6s ease, z-index 0.6s;
+            z-index: 2;
+        }
+
+        .letter-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ffd1dc;
+            border-radius: 8px;
+            z-index: 3;
+        }
+        .corner-tl { top: 15px; left: 15px; border-right: none; border-bottom: none; }
+        .corner-br { bottom: 15px; right: 15px; border-left: none; border-top: none; }
+
+        .hearts, .sparkles {
+            position: absolute;
+            top: 135px;
+            left: 0;
+            right: 0;
+            z-index: 2;
+        }
+
+        .heart, .sparkle {
+            position: absolute;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .heart:before,
+        .heart:after {
+            content: "";
+            position: absolute;
+            left: 37px;
+            top: 0;
+            width: 37px;
+            height: 60px;
+            background: var(--color-heart);
+            border-radius: 37px 37px 0 0;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+
+        .heart:after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+
+        .sparkle {
+            width: 12px;
+            height: 12px;
+            background: var(--color-sparkle);
+            border-radius: 50%;
+            animation: sparkleTwinkle 1s infinite;
+        }
+
+        .close .heart,
+        .close .sparkle {
+            opacity: 0;
+            animation: none;
+        }
+
+        .a1 { left: 20%; transform: scale(0.9); animation: slideUp 4s linear infinite, sideSway 2s ease-in-out infinite alternate; }
+        .a2 { left: 55%; animation: slideUp 5s linear infinite, sideSway 4s ease-in-out infinite alternate; }
+        .a3 { left: 10%; transform: scale(1.2); animation: slideUp 7s linear infinite, sideSway 2s ease-in-out infinite alternate; }
+
+        .s1 { left: 30%; animation: sparkleUp 3s linear infinite; }
+        .s2 { left: 60%; animation: sparkleUp 4s linear infinite; }
+        .s3 { left: 45%; animation: sparkleUp 5s linear infinite; }
+
+        @keyframes slideUp {
+            0% { top: 0; }
+            100% { top: -900px; }
+        }
+
+        @keyframes sideSway {
+            0% { margin-left: 0; }
+            50% { margin-left: 75px; }
+            100% { margin-left: 0; }
+        }
+
+        @keyframes sparkleUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-750px) rotate(360deg); opacity: 0; }
+        }
+
+        @keyframes sparkleTwinkle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+
+        body {
+            background-color: var(--color-bg);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .reset {
+            text-align: center;
+            margin-top: 75px;
+        }
+
+        .reset button {
+            font-weight: 600;
+            transition: all 0.3s ease;
+            background-color: palevioletred;
+            border: 2px solid black;
+            border-radius: 20px;
+            color: white;
+            padding: 18px 38px;
+            margin: 15px;
+            font-size: 22px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+
+        .reset button:hover {
+            background-color: var(--color-env2);
+            transform: translateY(-4px) scale(1.07);
+        }
+    </style>
+</head>
+<body>
+    <div class="envlope-wrapper">
+        <div id="envelope" class="close">
+            <div class="wax-seal"></div>
+            <div class="front flap"></div>
+            <div class="front pocket"></div>
+            <div class="letter">
+                <div class="letter-corner corner-tl"></div>
+                <div class="letter-corner corner-br"></div>
+                <div class="message">
+                    <p>Happy Birthday Nachuwa</p>
+                    <p>Always Be Happy And Smile:&#41;</p>
+                    <div class="image">
+                        <img src="chwa.jpeg" alt="nasywa" style="height: 130px; width: auto;" />
+                    </div>
+                </div>
+            </div>
+            <div class="hearts">
+                <div class="heart a1"></div>
+                <div class="heart a2"></div>
+                <div class="heart a3"></div>
+            </div>
+            <div class="sparkles">
+                <div class="sparkle s1"></div>
+                <div class="sparkle s2"></div>
+                <div class="sparkle s3"></div>
+            </div>
+        </div>
+    </div>
+    <div class="reset">
+        <button id="open">Open Envelope</button>
+        <button id="reset">Close Envelope</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const envelope = $('#envelope');
+            const btnOpen = $("#open");
+            const btnReset = $("#reset");
+
+            envelope.on('click', open);
+            btnOpen.on('click', open);
+            btnReset.on('click', close);
+
+            function open() {
+                envelope.removeClass("close").addClass("open");
+            }
+
+            function close() {
+                envelope.removeClass("open").addClass("close");
+            }
+        });
+    </script>
+</body>
+</html>
