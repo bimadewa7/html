@@ -5,23 +5,193 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Constellation Creator 🌟</title>
   <style>
-    /* ... CSS sama seperti sebelumnya ... */
-    body { margin: 0; overflow: hidden; background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); font-family: Arial, sans-serif; color: white; }
-    canvas { display: block; touch-action: none; }
-    #messageBox, #contextMenu { position: absolute; background: rgba(255,255,255,0.95); color: #000; border-radius: 6px; padding: 8px; font-size: 14px; display: none; z-index: 10; }
-    #controls { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; z-index: 20; min-width: 180px; display: flex; flex-direction: column; gap: 8px; }
-    #controls.hide-controls { opacity: 0; pointer-events: none; transform: translateX(-250px); }
-    #controls .close-controls-btn { display: flex; justify-content: flex-end; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; align-items: center; padding: 0; width: 100%; }
-    #hamburgerBtn { position: absolute; top: 10px; left: 10px; z-index: 50; width: 44px; height: 44px; background: rgba(0,0,0,0.7); border: none; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 28px; color: #fff; }
-    button { background: #fff; border: none; border-radius: 5px; padding: 5px 10px; font-size: 14px; cursor: pointer; }
-    button:hover { background: #ffcccb; }
-    #starInfo { position: absolute; background: rgba(0, 0, 0, 0.6); color: white; padding: 10px; font-size: 12px; border-radius: 5px; display: none; z-index: 15; }
-    /* Prompt Modal */
-    #customPrompt { display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:100; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; }
-    #customPrompt .modalBox { background:#fff; color:#000; padding:20px; border-radius:8px; min-width:200px; max-width:90vw; }
-    #customPrompt input { width:100%; margin-top:10px; font-size:16px; padding:6px; }
-    #customPrompt .modalActions { margin-top:10px; text-align:right; }
-    #customPrompt button { margin-left: 3px; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+      font-family: Arial, sans-serif;
+      color: white;
+      touch-action: manipulation;
+    }
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+    #messageBox, #contextMenu {
+      position: absolute;
+      background: rgba(255,255,255,0.95);
+      color: #000;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 14px;
+      display: none;
+      z-index: 10;
+    }
+    #contextMenu button {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 6px;
+      text-align: left;
+      cursor: pointer;
+    }
+    #contextMenu button:hover {
+      background: #f0f0f0;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 8px;
+      z-index: 20;
+      transition: opacity 0.2s, transform 0.3s;
+      min-width: 180px;
+      box-shadow: 0 4px 16px #000a;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #controls.hide-controls {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-250px);
+    }
+    #controls .close-controls-btn {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+      align-items: center;
+      padding: 0;
+      width: 100%;
+    }
+    #hamburgerBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 50;
+      width: 44px;
+      height: 44px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 12px #0008;
+      font-size: 28px;
+      color: #fff;
+      transition: background 0.15s;
+    }
+    #hamburgerBtn:hover {
+      background: #222;
+    }
+    button {
+      background: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      margin: 0;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ffcccb;
+    }
+    #starInfo {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 10px;
+      font-size: 12px;
+      border-radius: 5px;
+      display: none;
+      z-index: 15;
+    }
+    .highlighted {
+      fill: #FF0 !important;
+      stroke: #FF0 !important;
+      stroke-width: 2;
+    }
+    .star {
+      filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 24px #fff) drop-shadow(0 0 36px #ff0);
+      transition: filter 0.2s;
+    }
+    .group-label {
+      font-weight: bold;
+      text-shadow: 1px 1px 4px #000, 0 0 2px #fff;
+      pointer-events: none;
+      user-select: none;
+      font-size: 18px;
+    }
+    @media (max-width: 600px) {
+      #controls {
+        top: 0;
+        left: 0;
+        width: 100vw;
+        font-size: 4vw;
+        padding: 4vw 2vw 2vw 2vw;
+        border-radius: 0 0 12px 12px;
+        min-width: unset;
+      }
+      button {
+        font-size: 4vw;
+        padding: 3vw 6vw;
+      }
+      #starInfo {
+        font-size: 3vw;
+        padding: 3vw;
+      }
+      #contextMenu, #messageBox {
+        font-size: 4vw;
+        padding: 3vw;
+      }
+      #hamburgerBtn {
+        width: 12vw;
+        height: 12vw;
+        font-size: 7vw;
+      }
+    }
+    #groupColorChoices {
+      margin-top:10px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    #groupColorChoices .color-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border:2px solid #aaa;
+      cursor:pointer;
+      outline:none;
+      margin:0;
+      padding:0;
+      display:inline-block;
+      transition: border 0.1s;
+    }
+    #groupColorChoices .color-btn.selected {
+      border:3px solid #444;
+    }
+    #customColorPicker {
+      width:28px;
+      height:28px;
+      vertical-align:middle;
+      padding:0;
+      border:none;
+      background:none;
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -64,243 +234,189 @@
   <hr style="border:1px solid #222">
 </div>
 <div id="starInfo"></div>
-
-<!-- Custom Prompt Modal -->
-<div id="customPrompt">
-  <div class="modalBox" onclick="event.stopPropagation()">
-    <div id="customPromptText"></div>
-    <input type="text" id="customPromptInput" autocomplete="off" />
-    <div class="modalActions">
-      <button onclick="closePrompt(true)">OK</button>
-      <button onclick="closePrompt(false)">Cancel</button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
-  authDomain: "constellation-b1844.firebaseapp.com",
-  databaseURL: "https://constellation-b1844-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "constellation-b1844",
-  storageBucket: "constellation-b1844.appspot.com",
-  messagingSenderId: "31660084862",
-  appId: "1:31660084862:web:0c2f9301819de7a540922f",
-  measurementId: "G-ZFYHDD1EY0"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyAn9lNzZsWyF76P5_XhTe-aO7yGYnhH9Ak",
+    authDomain: "constellation-b1844.firebaseapp.com",
+    databaseURL: "https://constellation-b1844-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "constellation-b1844",
+    storageBucket: "constellation-b1844.appspot.com",
+    messagingSenderId: "31660084862",
+    appId: "1:31660084862:web:0c2f9301819de7a540922f",
+    measurementId: "G-ZFYHDD1EY0"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-const canvas = document.getElementById("sky");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+  const canvas = document.getElementById("sky");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-let stars = [];
-let connections = [];
-let starGroups = [];
-let selectedStar = null;
-let firstStar = null;
-let contextStar = null;
-let contextGroupIdx = null;
-let connectMode = false;
+  let stars = [];
+  let connections = [];
+  let starGroups = [];
+  let selectedStar = null;
+  let firstStar = null;
+  let contextStar = null;
+  let contextGroupIdx = null;
+  let connectMode = false;
 
-const messageBox = document.getElementById("messageBox");
-const contextMenu = document.getElementById("contextMenu");
-const starGroupMenuSection = document.getElementById("starGroupMenuSection");
-const controls = document.getElementById("controls");
-const hamburgerBtn = document.getElementById("hamburgerBtn");
-const starInfo = document.getElementById("starInfo");
-const toggleGroupNameBtn = document.getElementById("toggleGroupNameBtn");
-const groupColorChoices = document.getElementById("groupColorChoices");
-const colorBtns = groupColorChoices.querySelectorAll(".color-btn");
-const customColorPicker = document.getElementById("customColorPicker");
+  const messageBox = document.getElementById("messageBox");
+  const contextMenu = document.getElementById("contextMenu");
+  const starGroupMenuSection = document.getElementById("starGroupMenuSection");
+  const controls = document.getElementById("controls");
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const starInfo = document.getElementById("starInfo");
+  const toggleGroupNameBtn = document.getElementById("toggleGroupNameBtn");
+  const groupColorChoices = document.getElementById("groupColorChoices");
+  const colorBtns = groupColorChoices.querySelectorAll(".color-btn");
+  const customColorPicker = document.getElementById("customColorPicker");
 
-// --- Custom Prompt Modal Logic ---
-let promptCallback = null;
-function showPrompt(text, cb, defaultVal="") {
-  document.getElementById("customPromptText").innerText = text;
-  const input = document.getElementById("customPromptInput");
-  input.value = defaultVal || "";
-  document.getElementById("customPrompt").style.display = "flex";
-  setTimeout(()=>input.focus(), 100);
-  promptCallback = cb;
-}
-function closePrompt(ok) {
-  const input = document.getElementById("customPromptInput");
-  const val = input.value;
-  input.blur(); // Tutup keyboard mobile
-  document.getElementById("customPrompt").style.display = "none";
-  if (ok && promptCallback) promptCallback(val);
-  else if (promptCallback) promptCallback(null);
-  promptCallback = null;
-}
-// Tutup prompt dengan tap di luar modal
-document.getElementById("customPrompt").addEventListener("click", function(e){
-  if(e.target === this){
-    closePrompt(false);
+  let scale = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  let isDragging = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  // Pinch-to-zoom variables
+  let lastPinchDist = null;
+
+  // Fungsi zoom manual
+  window.zoomIn = function() {
+    scale *= 1.15;
+    scale = Math.min(scale, 4);
+    draw();
   }
-});
-// Enter = OK, Esc = Cancel
-document.getElementById("customPromptInput").addEventListener("keydown", function(e){
-  if(e.key === "Enter") { closePrompt(true); }
-  else if(e.key === "Escape") { closePrompt(false); }
-});
-
-// -----------------
-
-let scale = 1;
-let offsetX = 0;
-let offsetY = 0;
-let isDragging = false;
-let lastX = 0;
-let lastY = 0;
-
-// Pinch-to-zoom variables
-let lastPinchDist = null;
-
-window.zoomIn = function() {
-  scale *= 1.15;
-  scale = Math.min(scale, 4);
-  draw();
-}
-window.zoomOut = function() {
-  scale /= 1.15;
-  scale = Math.max(scale, 0.5);
-  draw();
-}
-
-function buildGroups() {
-  const visited = new Array(stars.length).fill(false);
-  const groups = [];
-  function dfs(idx, group) {
-    visited[idx] = true;
-    group.push(idx);
-    connections.forEach(([aIdx, bIdx]) => {
-      if (aIdx === idx && !visited[bIdx]) dfs(bIdx, group);
-      if (bIdx === idx && !visited[aIdx]) dfs(aIdx, group);
-    });
+  window.zoomOut = function() {
+    scale /= 1.15;
+    scale = Math.max(scale, 0.5);
+    draw();
   }
-  for (let i = 0; i < stars.length; ++i) {
-    if (!visited[i]) {
-      const group = [];
-      dfs(i, group);
-      if (group.length > 0) groups.push(group);
+
+  function buildGroups() {
+    const visited = new Array(stars.length).fill(false);
+    const groups = [];
+    function dfs(idx, group) {
+      visited[idx] = true;
+      group.push(idx);
+      connections.forEach(([aIdx, bIdx]) => {
+        if (aIdx === idx && !visited[bIdx]) dfs(bIdx, group);
+        if (bIdx === idx && !visited[aIdx]) dfs(aIdx, group);
+      });
     }
-  }
-  const newStarGroups = groups.map((starIndices) => {
-    let meta = undefined;
-    for (const oldGroup of starGroups) {
-      if (
-        oldGroup.starIndices.length === starIndices.length &&
-        oldGroup.starIndices.every(i => starIndices.includes(i))
-      ) {
-        meta = oldGroup;
-        break;
+    for (let i = 0; i < stars.length; ++i) {
+      if (!visited[i]) {
+        const group = [];
+        dfs(i, group);
+        if (group.length > 0) groups.push(group);
       }
     }
-    return {
-      starIndices: [...starIndices],
-      name: meta?.name || "",
-      color: meta?.color || "#FFD700",
-      visible: meta?.visible !== undefined ? meta.visible : true
+    const newStarGroups = groups.map((starIndices) => {
+      let meta = undefined;
+      for (const oldGroup of starGroups) {
+        if (
+          oldGroup.starIndices.length === starIndices.length &&
+          oldGroup.starIndices.every(i => starIndices.includes(i))
+        ) {
+          meta = oldGroup;
+          break;
+        }
+      }
+      return {
+        starIndices: [...starIndices],
+        name: meta?.name || "",
+        color: meta?.color || "#FFD700",
+        visible: meta?.visible !== undefined ? meta.visible : true
+      };
+    });
+    starGroups = newStarGroups;
+  }
+
+  function draw() {
+    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+    ctx.clearRect((-offsetX) / scale, (-offsetY) / scale, canvas.width / scale, canvas.height / scale);
+    buildGroups();
+    // Draw connections in default white
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 1.5;
+    connections.forEach(([i1, i2]) => {
+      ctx.beginPath();
+      ctx.moveTo(stars[i1].x, stars[i1].y);
+      ctx.lineTo(stars[i2].x, stars[i2].y);
+      ctx.stroke();
+    });
+    ctx.restore();
+    stars.forEach((star, idx) => {
+      ctx.save();
+      if (!star.highlighted) {
+        ctx.shadowColor = "#fff";
+        ctx.shadowBlur = 18;
+      } else {
+        ctx.shadowColor = "#FF0";
+        ctx.shadowBlur = 26;
+      }
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = star.highlighted ? "#FF0" : "white";
+      ctx.fill();
+      ctx.restore();
+    });
+    // Nama grup di bawah
+    starGroups.forEach((group, idx) => {
+      if (!group.visible || !group.name || group.starIndices.length < 2) return;
+      let xs = [], ys = [];
+      group.starIndices.forEach(i => {
+        xs.push(stars[i].x);
+        ys.push(stars[i].y);
+      });
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const centerX = (minX + maxX) / 2;
+      const bottomY = maxY;
+      const nameOffset = 40;
+      ctx.save();
+      ctx.font = "bold 19px Arial";
+      ctx.fillStyle = group.color || "#FFD700";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.shadowColor = "#000";
+      ctx.shadowBlur = 8;
+      ctx.globalAlpha = 0.97;
+      ctx.fillText(group.name, centerX, bottomY + nameOffset);
+      ctx.restore();
+    });
+  }
+
+  function saveToFirebase() {
+    const data = {
+      stars: stars.map(s => ({ x: s.x, y: s.y, message: s.message })),
+      connections,
+      starGroups
     };
-  });
-  starGroups = newStarGroups;
-}
-
-function draw() {
-  ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-  ctx.clearRect((-offsetX) / scale, (-offsetY) / scale, canvas.width / scale, canvas.height / scale);
-  buildGroups();
-  // Draw connections in default white
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.3)";
-  ctx.lineWidth = 1.5;
-  connections.forEach(([i1, i2]) => {
-    ctx.beginPath();
-    ctx.moveTo(stars[i1].x, stars[i1].y);
-    ctx.lineTo(stars[i2].x, stars[i2].y);
-    ctx.stroke();
-  });
-  ctx.restore();
-  stars.forEach((star, idx) => {
-    ctx.save();
-    if (!star.highlighted) {
-      ctx.shadowColor = "#fff";
-      ctx.shadowBlur = 18;
-    } else {
-      ctx.shadowColor = "#FF0";
-      ctx.shadowBlur = 26;
-    }
-    ctx.beginPath();
-    ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = star.highlighted ? "#FF0" : "white";
-    ctx.fill();
-    ctx.restore();
-  });
-  // Nama grup di bawah
-  starGroups.forEach((group, idx) => {
-    if (!group.visible || !group.name || group.starIndices.length < 2) return;
-    let xs = [], ys = [];
-    group.starIndices.forEach(i => {
-      xs.push(stars[i].x);
-      ys.push(stars[i].y);
+    set(ref(db, "constellations"), data);
+  }
+  function loadFromFirebase() {
+    get(child(ref(db), "constellations")).then((snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        stars = (data.stars || []).map(s => ({ ...s }));
+        connections = (data.connections || []).map(([i1, i2]) => [i1, i2]);
+        starGroups = (data.starGroups || []).map(g => ({
+          ...g, starIndices: [...g.starIndices]
+        }));
+        draw();
+      }
     });
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const centerX = (minX + maxX) / 2;
-    const bottomY = maxY;
-    const nameOffset = 40;
-    ctx.save();
-    ctx.font = "bold 19px Arial";
-    ctx.fillStyle = group.color || "#FFD700";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.shadowColor = "#000";
-    ctx.shadowBlur = 8;
-    ctx.globalAlpha = 0.97;
-    ctx.fillText(group.name, centerX, bottomY + nameOffset);
-    ctx.restore();
-  });
-}
+  }
 
-function saveToFirebase() {
-  const data = {
-    stars: stars.map(s => ({ x: s.x, y: s.y, message: s.message })),
-    connections,
-    starGroups
-  };
-  set(ref(db, "constellations"), data)
-    .catch((err) => {
-      console.error("Gagal simpan ke Firebase:", err);
-      alert("Gagal simpan ke Firebase. Cek console.");
-    });
-}
-function loadFromFirebase() {
-  get(child(ref(db), "constellations")).then((snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      stars = (data.stars || []).map(s => ({ ...s }));
-      connections = (data.connections || []).map(([i1, i2]) => [i1, i2]);
-      starGroups = (data.starGroups || []).map(g => ({
-        ...g, starIndices: [...g.starIndices]
-      }));
-      draw();
-    } else {
-      console.log("No data found at /constellations");
-    }
-  }).catch((err) => {
-    console.error("Firebase load error:", err);
-    alert("Gagal muat data dari Firebase. Cek console browser anda.");
-  });
-}
-
-function resetStars() {
-  showPrompt("Masukkan password untuk reset:", function(pw) {
+  function resetStars() {
+    const pw = prompt("Masukkan password untuk reset:");
     if (pw !== "supernenechi123") {
       alert("Password salah!");
       return;
@@ -314,380 +430,385 @@ function resetStars() {
     hideContextMenu();
     saveToFirebase();
     draw();
-  });
-}
-
-function setGroupColor(color) {
-  if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
-  starGroups[contextGroupIdx].color = color;
-  saveToFirebase();
-  draw();
-  hideContextMenu();
-}
-
-function updateColorChoiceUI() {
-  if (contextGroupIdx == null || !starGroups[contextGroupIdx]) return;
-  const selColor = (starGroups[contextGroupIdx].color || "#FFD700").toLowerCase();
-  colorBtns.forEach(btn => {
-    if (btn.getAttribute("data-color").toLowerCase() === selColor) {
-      btn.classList.add("selected");
-    } else {
-      btn.classList.remove("selected");
-    }
-  });
-  if (customColorPicker) customColorPicker.value = selColor.startsWith("#") ? selColor : "#FFD700";
-}
-
-function showContextMenu(x, y, starIdx = null, groupIdx = null) {
-  contextStar = starIdx !== null ? stars[starIdx] : null;
-  contextGroupIdx = groupIdx !== undefined && groupIdx !== null ? groupIdx : getGroupIdxByStarIdx(starIdx);
-
-  let color = "#FFD700";
-  if (contextGroupIdx !== null && contextGroupIdx !== undefined && starGroups[contextGroupIdx]) {
-    toggleGroupNameBtn.textContent = starGroups[contextGroupIdx].visible ? "👁️ Sembunyikan Nama Grup" : "👁️ Tampilkan Nama Grup";
-    color = starGroups[contextGroupIdx].color || "#FFD700";
-  } else {
-    toggleGroupNameBtn.textContent = "👁️ Nama Grup";
   }
-  updateColorChoiceUI();
-  contextMenu.style.left = x + "px";
-  contextMenu.style.top = y + "px";
-  contextMenu.style.display = "block";
-}
-function hideContextMenu() {
-  contextMenu.style.display = "none";
-  contextStar = null;
-  contextGroupIdx = null;
-}
-function editSelectedStar() {
-  if (contextStar) {
-    showPrompt("Ubah pesan:", function(newMsg){
+
+  function setGroupColor(color) {
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
+    starGroups[contextGroupIdx].color = color;
+    saveToFirebase();
+    draw();
+    hideContextMenu();
+  }
+
+  function updateColorChoiceUI() {
+    if (contextGroupIdx == null || !starGroups[contextGroupIdx]) return;
+    const selColor = (starGroups[contextGroupIdx].color || "#FFD700").toLowerCase();
+    colorBtns.forEach(btn => {
+      if (btn.getAttribute("data-color").toLowerCase() === selColor) {
+        btn.classList.add("selected");
+      } else {
+        btn.classList.remove("selected");
+      }
+    });
+    if (customColorPicker) customColorPicker.value = selColor.startsWith("#") ? selColor : "#FFD700";
+  }
+
+  function showContextMenu(x, y, starIdx = null, groupIdx = null) {
+    contextStar = starIdx !== null ? stars[starIdx] : null;
+    contextGroupIdx = groupIdx !== undefined && groupIdx !== null ? groupIdx : getGroupIdxByStarIdx(starIdx);
+
+    let color = "#FFD700";
+    if (contextGroupIdx !== null && contextGroupIdx !== undefined && starGroups[contextGroupIdx]) {
+      toggleGroupNameBtn.textContent = starGroups[contextGroupIdx].visible ? "👁️ Sembunyikan Nama Grup" : "👁️ Tampilkan Nama Grup";
+      color = starGroups[contextGroupIdx].color || "#FFD700";
+    } else {
+      toggleGroupNameBtn.textContent = "👁️ Nama Grup";
+    }
+    updateColorChoiceUI();
+    contextMenu.style.left = x + "px";
+    contextMenu.style.top = y + "px";
+    contextMenu.style.display = "block";
+  }
+  function hideContextMenu() {
+    contextMenu.style.display = "none";
+    contextStar = null;
+    contextGroupIdx = null;
+  }
+  function editSelectedStar() {
+    if (contextStar) {
+      const newMsg = prompt("Ubah pesan:", contextStar.message || "");
       if (newMsg !== null) contextStar.message = newMsg;
       saveToFirebase();
       draw();
-      hideContextMenu();
-    }, contextStar.message || "");
-  } else {
+    }
     hideContextMenu();
   }
-}
-function deleteSelectedStar() {
-  if (contextStar) {
-    const idx = stars.indexOf(contextStar);
-    if (idx !== -1) {
-      stars.splice(idx, 1);
-      connections = connections.filter(([a, b]) => a !== idx && b !== idx);
-      starGroups.forEach(g => { g.starIndices = g.starIndices.filter(i => i !== idx); });
-      function fixIndex(val) { return val > idx ? val - 1 : val; }
-      connections = connections.map(([a, b]) => [fixIndex(a), fixIndex(b)]);
-      starGroups.forEach(g => { g.starIndices = g.starIndices.map(fixIndex); });
+  function deleteSelectedStar() {
+    if (contextStar) {
+      const idx = stars.indexOf(contextStar);
+      if (idx !== -1) {
+        stars.splice(idx, 1);
+        connections = connections.filter(([a, b]) => a !== idx && b !== idx);
+        starGroups.forEach(g => { g.starIndices = g.starIndices.filter(i => i !== idx); });
+        function fixIndex(val) { return val > idx ? val - 1 : val; }
+        connections = connections.map(([a, b]) => [fixIndex(a), fixIndex(b)]);
+        starGroups.forEach(g => { g.starIndices = g.starIndices.map(fixIndex); });
+      }
+      saveToFirebase();
+      draw();
     }
-    saveToFirebase();
+    hideContextMenu();
+  }
+  function startConnectingStars() {
+    if (!contextStar) return;
+    if (firstStar != null) {
+      stars[firstStar].highlighted = false;
+      firstStar = null;
+      connectMode = false;
+      draw();
+    }
+    firstStar = stars.indexOf(contextStar);
+    stars[firstStar].highlighted = true;
+    connectMode = true;
+    hideContextMenu();
     draw();
   }
-  hideContextMenu();
-}
-function startConnectingStars() {
-  if (!contextStar) return;
-  if (firstStar != null) {
-    stars[firstStar].highlighted = false;
-    firstStar = null;
-    connectMode = false;
-    draw();
+  function deleteConnectionsOfStar() {
+    if (contextStar) {
+      const idx = stars.indexOf(contextStar);
+      connections = connections.filter(([a, b]) => a !== idx && b !== idx);
+      saveToFirebase();
+      draw();
+    }
+    hideContextMenu();
   }
-  firstStar = stars.indexOf(contextStar);
-  stars[firstStar].highlighted = true;
-  connectMode = true;
-  hideContextMenu();
-  draw();
-}
-function deleteConnectionsOfStar() {
-  if (contextStar) {
-    const idx = stars.indexOf(contextStar);
-    connections = connections.filter(([a, b]) => a !== idx && b !== idx);
-    saveToFirebase();
-    draw();
-  }
-  hideContextMenu();
-}
-function promptGroupName() {
-  if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
-  const g = starGroups[contextGroupIdx];
-  showPrompt("Nama grup:", function(name){
+  function promptGroupName() {
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
+    const g = starGroups[contextGroupIdx];
+    const name = prompt("Nama grup:", g.name || "");
     if (name !== null) {
       g.name = name;
       saveToFirebase();
       draw();
     }
     hideContextMenu();
-  }, g.name || "");
-}
-function removeGroupName() {
-  if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
-  const g = starGroups[contextGroupIdx];
-  if (g.name && confirm("Hapus nama grup?")) {
-    g.name = "";
-    saveToFirebase();
-    draw();
   }
-  hideContextMenu();
-}
-function toggleGroupNameVisibility() {
-  if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
-  const g = starGroups[contextGroupIdx];
-  g.visible = !g.visible;
-  saveToFirebase();
-  draw();
-  hideContextMenu();
-}
-function getGroupIdxByStarIdx(starIdx) {
-  if (starIdx == null) return null;
-  for (let gi = 0; gi < starGroups.length; gi++) {
-    if (starGroups[gi].starIndices.includes(starIdx)) return gi;
-  }
-  return null;
-}
-function findStarAt(x, y) {
-  return stars.findIndex(star => {
-    const dx = star.x - x;
-    const dy = star.y - y;
-    return Math.sqrt(dx * dx + dy * dy) < 10;
-  });
-}
-function findGroupAt(x, y) {
-  for (let gi = 0; gi < starGroups.length; gi++) {
-    const g = starGroups[gi];
-    if (g.starIndices.length < 2) continue;
-    let xs = [], ys = [];
-    g.starIndices.forEach(i => {
-      xs.push(stars[i].x);
-      ys.push(stars[i].y);
-    });
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const centerX = (minX + maxX) / 2;
-    const topY = minY;
-    if (Math.abs(x - centerX) < 60 && Math.abs(y - (topY - 40)) < 25) {
-      return gi;
+  function removeGroupName() {
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
+    const g = starGroups[contextGroupIdx];
+    if (g.name && confirm("Hapus nama grup?")) {
+      g.name = "";
+      saveToFirebase();
+      draw();
     }
-  }
-  return null;
-}
-function showControls() {
-  controls.classList.remove("hide-controls");
-  controls.style.opacity = 1;
-  controls.style.pointerEvents = "auto";
-  hamburgerBtn.style.display = "none";
-}
-function toggleControls() {
-  if (!controls.classList.contains("hide-controls")) {
-    controls.classList.add("hide-controls");
-    controls.style.opacity = 0;
-    controls.style.pointerEvents = "none";
-    hamburgerBtn.style.display = "block";
-  } else {
-    showControls();
-  }
-}
-hamburgerBtn.onclick = showControls;
-
-document.addEventListener("pointerdown", (e) => {
-  if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
     hideContextMenu();
   }
-});
+  function toggleGroupNameVisibility() {
+    if (contextGroupIdx == null || starGroups[contextGroupIdx] == null) return;
+    const g = starGroups[contextGroupIdx];
+    g.visible = !g.visible;
+    saveToFirebase();
+    draw();
+    hideContextMenu();
+  }
+  function getGroupIdxByStarIdx(starIdx) {
+    if (starIdx == null) return null;
+    for (let gi = 0; gi < starGroups.length; gi++) {
+      if (starGroups[gi].starIndices.includes(starIdx)) return gi;
+    }
+    return null;
+  }
+  function findStarAt(x, y) {
+    return stars.findIndex(star => {
+      const dx = star.x - x;
+      const dy = star.y - y;
+      return Math.sqrt(dx * dx + dy * dy) < 10;
+    });
+  }
+  function findGroupAt(x, y) {
+    for (let gi = 0; gi < starGroups.length; gi++) {
+      const g = starGroups[gi];
+      if (g.starIndices.length < 2) continue;
+      let xs = [], ys = [];
+      g.starIndices.forEach(i => {
+        xs.push(stars[i].x);
+        ys.push(stars[i].y);
+      });
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const centerX = (minX + maxX) / 2;
+      const topY = minY;
+      if (Math.abs(x - centerX) < 60 && Math.abs(y - (topY - 40)) < 25) {
+        return gi;
+      }
+    }
+    return null;
+  }
+  function showControls() {
+    controls.classList.remove("hide-controls");
+    controls.style.opacity = 1;
+    controls.style.pointerEvents = "auto";
+    hamburgerBtn.style.display = "none";
+  }
+  function toggleControls() {
+    if (!controls.classList.contains("hide-controls")) {
+      controls.classList.add("hide-controls");
+      controls.style.opacity = 0;
+      controls.style.pointerEvents = "none";
+      hamburgerBtn.style.display = "block";
+    } else {
+      showControls();
+    }
+  }
+  hamburgerBtn.onclick = showControls;
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  draw();
-}
-window.addEventListener("resize", resizeCanvas);
-window.addEventListener("orientationchange", resizeCanvas);
-resizeCanvas();
+  document.addEventListener("pointerdown", (e) => {
+    if (contextMenu.style.display === "block" && !contextMenu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
 
-// Triple-tap/click logic
-let tapTimes = [];
-let tapTimeout;
-let lastTapXY = { x: null, y: null };
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    draw();
+  }
+  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("orientationchange", resizeCanvas);
+  resizeCanvas();
 
-function handleMenu(e, x, y, isAddStar = false) {
-  const starIdx = findStarAt(x, y);
-  const groupIdx = starIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(starIdx);
-  if (starIdx >= 0) {
-    showContextMenu(e.clientX, e.clientY, starIdx, groupIdx);
-  } else if (groupIdx != null) {
-    showContextMenu(e.clientX, e.clientY, null, groupIdx);
-  } else if (isAddStar) {
-    showPrompt("Pesan untuk bintang ini (Bisa memasukkan link):", function(msg){
+  // Triple-tap/click logic
+  let tapTimes = [];
+  let tapTimeout;
+  let lastTapXY = { x: null, y: null };
+  let pointerDownTime = 0;
+  let pointerDownX = 0, pointerDownY = 0;
+  let pointerDownStarIdx = null, pointerDownGroupIdx = null;
+
+  function handleMenu(e, x, y, isAddStar = false) {
+    const starIdx = findStarAt(x, y);
+    const groupIdx = starIdx < 0 ? findGroupAt(x, y) : getGroupIdxByStarIdx(starIdx);
+    if (starIdx >= 0) {
+      showContextMenu(e.clientX, e.clientY, starIdx, groupIdx);
+    } else if (groupIdx != null) {
+      showContextMenu(e.clientX, e.clientY, null, groupIdx);
+    } else if (isAddStar) {
+      // Tambah bintang jika triple tap/click
+      const msg = prompt("Pesan untuk bintang ini (Bisa memasukkan link):");
       if (msg !== null) {
         stars.push({ x, y, message: msg });
         saveToFirebase();
         draw();
       }
+    }
+  }
+
+  // Desktop: triple click (or triple tap)
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
+    processTap(e, x, y);
+  });
+  canvas.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
+    processTap(e, x, y);
+  });
+
+  function processTap(e, x, y) {
+    // Connection mode
+    let starIdx = findStarAt(x, y);
+    if (connectMode && firstStar != null && starIdx >= 0 && starIdx !== firstStar) {
+      connections.push([firstStar, starIdx]);
+      stars[firstStar].highlighted = false;
+      firstStar = null;
+      connectMode = false;
+      saveToFirebase();
+      draw();
+      tapTimes = [];
+      return;
+    }
+    // Tap logic
+    tapTimes.push(Date.now());
+    lastTapXY = { x, y };
+    clearTimeout(tapTimeout);
+    if (tapTimes.length === 3 && (tapTimes[2] - tapTimes[0]) < 800) {
+      handleMenu(e, x, y, true);
+      tapTimes = [];
+    } else if (tapTimes.length > 3) {
+      tapTimes = [tapTimes[tapTimes.length - 1]]; // keep only last tap
+    } else {
+      tapTimeout = setTimeout(() => {
+        // longpress menu for star/group
+        if (tapTimes.length === 1) {
+          handleMenu(e, x, y, false);
+        }
+        tapTimes = [];
+      }, 500);
+    }
+  }
+
+  // Pointer move for info
+  canvas.addEventListener("pointermove", (e) => {
+    const { x, y } = toCanvasCoords(e.clientX, e.clientY);
+    const starIdx = findStarAt(x, y);
+    if (starIdx >= 0) {
+      const hoveredStar = stars[starIdx];
+      starInfo.textContent = `Koordinat: (${hoveredStar.x.toFixed(2)}, ${hoveredStar.y.toFixed(2)})`;
+      starInfo.innerHTML += `<br>Pesan: ${hoveredStar.message || "Tidak ada pesan"}`;
+      const infoRect = starInfo.getBoundingClientRect();
+      let left = e.clientX + 10;
+      let top = e.clientY - (infoRect.height || 40) - 10;
+      if (top < 0) top = e.clientY + 20;
+      if (left + (infoRect.width || 150) > window.innerWidth) {
+        left = window.innerWidth - (infoRect.width || 150) - 10;
+      }
+      starInfo.style.left = left + "px";
+      starInfo.style.top = top + "px";
+      starInfo.style.display = "block";
+    } else {
+      starInfo.style.display = "none";
+    }
+  });
+
+  // Event wheel (desktop)
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const mouse = toCanvasCoords(e.clientX, e.clientY);
+    const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+    scale *= zoom;
+    scale = Math.max(0.5, Math.min(scale, 4)); // batas zoom
+    offsetX = e.clientX - (mouse.x * scale);
+    offsetY = e.clientY - (mouse.y * scale);
+    draw();
+  }, { passive: false });
+
+  // Pinch-to-zoom (mobile)
+  canvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      lastPinchDist = getTouchDist(e.touches[0], e.touches[1]);
+    }
+  });
+  canvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2 && lastPinchDist !== null) {
+      const newDist = getTouchDist(e.touches[0], e.touches[1]);
+      if (Math.abs(newDist - lastPinchDist) > 2) { // avoid too sensitive
+        const center = {
+          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+        const mouse = toCanvasCoords(center.x, center.y);
+        const ratio = newDist / lastPinchDist;
+        scale *= ratio;
+        scale = Math.max(0.5, Math.min(scale, 4));
+        offsetX = center.x - (mouse.x * scale);
+        offsetY = center.y - (mouse.y * scale);
+        draw();
+        lastPinchDist = newDist;
+      }
+      e.preventDefault();
+    }
+  }, { passive: false });
+  canvas.addEventListener("touchend", (e) => {
+    if (e.touches.length < 2) {
+      lastPinchDist = null;
+    }
+  });
+  function getTouchDist(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button === 1 || (e.pointerType === "touch" && findStarAt(...Object.values(toCanvasCoords(e.clientX, e.clientY))) < 0)) {
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    }
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (isDragging) {
+      offsetX += e.clientX - lastX;
+      offsetY += e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      draw();
+    }
+  });
+  canvas.addEventListener("pointerup", () => {
+    isDragging = false;
+  });
+
+  // Set up color button events
+  colorBtns.forEach(btn => {
+    btn.addEventListener("click", e => {
+      setGroupColor(btn.getAttribute("data-color"));
+    });
+  });
+  if (customColorPicker) {
+    customColorPicker.addEventListener("change", e => {
+      setGroupColor(customColorPicker.value);
     });
   }
-}
 
-canvas.addEventListener("mousedown", (e) => {
-  if (e.button !== 0) return;
-  const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-  processTap(e, x, y);
-});
-canvas.addEventListener("touchstart", (e) => {
-  const touch = e.touches[0];
-  const { x, y } = toCanvasCoords(touch.clientX, touch.clientY);
-  processTap(e, x, y);
-});
+  window.deleteConnectionsOfStar = deleteConnectionsOfStar;
+  window.editSelectedStar = editSelectedStar;
+  window.deleteSelectedStar = deleteSelectedStar;
+  window.startConnectingStars = startConnectingStars;
+  window.resetStars = resetStars;
+  window.promptGroupName = promptGroupName;
+  window.removeGroupName = removeGroupName;
+  window.toggleGroupNameVisibility = toggleGroupNameVisibility;
+  window.toggleControls = toggleControls;
 
-function processTap(e, x, y) {
-  let starIdx = findStarAt(x, y);
-  if (connectMode && firstStar != null && starIdx >= 0 && starIdx !== firstStar) {
-    connections.push([firstStar, starIdx]);
-    stars[firstStar].highlighted = false;
-    firstStar = null;
-    connectMode = false;
-    saveToFirebase();
-    draw();
-    tapTimes = [];
-    return;
+  function toCanvasCoords(x, y) {
+    return {
+      x: (x - offsetX) / scale,
+      y: (y - offsetY) / scale
+    };
   }
-  tapTimes.push(Date.now());
-  lastTapXY = { x, y };
-  clearTimeout(tapTimeout);
-  if (tapTimes.length === 3 && (tapTimes[2] - tapTimes[0]) < 800) {
-    handleMenu(e, x, y, true);
-    tapTimes = [];
-  } else if (tapTimes.length > 3) {
-    tapTimes = [tapTimes[tapTimes.length - 1]];
-  } else {
-    tapTimeout = setTimeout(() => {
-      if (tapTimes.length === 1) {
-        handleMenu(e, x, y, false);
-      }
-      tapTimes = [];
-    }, 500);
-  }
-}
-
-canvas.addEventListener("pointermove", (e) => {
-  const { x, y } = toCanvasCoords(e.clientX, e.clientY);
-  const starIdx = findStarAt(x, y);
-  if (starIdx >= 0) {
-    const hoveredStar = stars[starIdx];
-    starInfo.textContent = `Koordinat: (${hoveredStar.x.toFixed(2)}, ${hoveredStar.y.toFixed(2)})`;
-    starInfo.innerHTML += `<br>Pesan: ${hoveredStar.message || "Tidak ada pesan"}`;
-    const infoRect = starInfo.getBoundingClientRect();
-    let left = e.clientX + 10;
-    let top = e.clientY - (infoRect.height || 40) - 10;
-    if (top < 0) top = e.clientY + 20;
-    if (left + (infoRect.width || 150) > window.innerWidth) {
-      left = window.innerWidth - (infoRect.width || 150) - 10;
-    }
-    starInfo.style.left = left + "px";
-    starInfo.style.top = top + "px";
-    starInfo.style.display = "block";
-  } else {
-    starInfo.style.display = "none";
-  }
-});
-
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  const mouse = toCanvasCoords(e.clientX, e.clientY);
-  const zoom = e.deltaY < 0 ? 1.1 : 0.9;
-  scale *= zoom;
-  scale = Math.max(0.5, Math.min(scale, 4)); // batas zoom
-  offsetX = e.clientX - (mouse.x * scale);
-  offsetY = e.clientY - (mouse.y * scale);
-  draw();
-}, { passive: false });
-
-canvas.addEventListener("touchstart", (e) => {
-  if (e.touches.length === 2) {
-    lastPinchDist = getTouchDist(e.touches[0], e.touches[1]);
-  }
-});
-canvas.addEventListener("touchmove", (e) => {
-  if (e.touches.length === 2 && lastPinchDist !== null) {
-    const newDist = getTouchDist(e.touches[0], e.touches[1]);
-    if (Math.abs(newDist - lastPinchDist) > 2) {
-      const center = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-      };
-      const mouse = toCanvasCoords(center.x, center.y);
-      const ratio = newDist / lastPinchDist;
-      scale *= ratio;
-      scale = Math.max(0.5, Math.min(scale, 4));
-      offsetX = center.x - (mouse.x * scale);
-      offsetY = center.y - (mouse.y * scale);
-      draw();
-      lastPinchDist = newDist;
-    }
-    e.preventDefault();
-  }
-}, { passive: false });
-canvas.addEventListener("touchend", (e) => {
-  if (e.touches.length < 2) {
-    lastPinchDist = null;
-  }
-});
-function getTouchDist(t1, t2) {
-  const dx = t1.clientX - t2.clientX;
-  const dy = t1.clientY - t2.clientY;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-canvas.addEventListener("pointerdown", (e) => {
-  if (e.button === 1 || (e.pointerType === "touch" && findStarAt(...Object.values(toCanvasCoords(e.clientX, e.clientY))) < 0)) {
-    isDragging = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
-  }
-});
-canvas.addEventListener("pointermove", (e) => {
-  if (isDragging) {
-    offsetX += e.clientX - lastX;
-    offsetY += e.clientY - lastY;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    draw();
-  }
-});
-canvas.addEventListener("pointerup", () => {
-  isDragging = false;
-});
-
-// Set up color button events
-colorBtns.forEach(btn => {
-  btn.addEventListener("click", e => {
-    setGroupColor(btn.getAttribute("data-color"));
-  });
-});
-if (customColorPicker) {
-  customColorPicker.addEventListener("change", e => {
-    setGroupColor(customColorPicker.value);
-  });
-}
-
-window.deleteConnectionsOfStar = deleteConnectionsOfStar;
-window.editSelectedStar = editSelectedStar;
-window.deleteSelectedStar = deleteSelectedStar;
-window.startConnectingStars = startConnectingStars;
-window.resetStars = resetStars;
-window.promptGroupName = promptGroupName;
-window.removeGroupName = removeGroupName;
-window.toggleGroupNameVisibility = toggleGroupNameVisibility;
-window.toggleControls = toggleControls;
-
-function toCanvasCoords(x, y) {
-  return {
-    x: (x - offsetX) / scale,
-    y: (y - offsetY) / scale
-  };
-}
-loadFromFirebase();
+  loadFromFirebase();
 </script>
 </body>
 </html>
