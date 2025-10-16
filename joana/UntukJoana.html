@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>For Jo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Handlee&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --color-env: #b71c3b;      /* merah hati tua */
+      --color-env2: #d72660;     /* merah hati terang */
+      --color-flap: #e94f7c;     /* merah hati muda */
+      --color-bg: #f8e0ea;       /* pink muda untuk background */
+      --color-heart: #b71c3b;    /* merah hati */
+      --color-sparkle: #fff;
+      --color-lilac: #C8A2C8;    /* Warna lilac untuk kata 'lilac' */
+    }
+
+    body {
+      background-color: var(--color-bg);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'Handlee', cursive;
+      overflow-x: hidden;
+      position: relative;
+      user-select: none;
+    }
+
+    .envlope-wrapper {
+      height: 570px;
+      margin-top: 75px;
+      animation: float 3s ease-in-out infinite;
+      position: relative;
+      z-index: 1;
+    }
+
+    #envelope {
+      position: relative;
+      width: 420px;
+      height: 270px;
+      border-bottom-left-radius: 9px;
+      border-bottom-right-radius: 9px;
+      margin: 0 auto;
+      top: 200px;
+      background-color: var(--color-flap);
+      cursor: pointer;
+    }
+
+    .front {
+      position: absolute;
+      width: 0;
+      height: 0;
+      z-index: 3;
+    }
+
+    .flap {
+      border-left: 210px solid transparent;
+      border-right: 210px solid transparent;
+      border-bottom: 123px solid transparent;
+      border-top: 147px solid var(--color-flap);
+      transform-origin: top;
+      pointer-events: none;
+      transition: transform 0.4s ease, z-index 0.6s;  /* Tetap 0.4s untuk flap */
+    }
+
+    .pocket {
+      border-left: 210px solid var(--color-env);
+      border-right: 210px solid var(--color-env);
+      border-bottom: 135px solid var(--color-env2);
+      border-top: 135px solid transparent;
+      border-bottom-left-radius: 9px;
+      border-bottom-right-radius: 9px;
+    }
+
+    .letter {
+      position: relative;
+      background-color: #ffffff;
+      width: 90%;
+      margin: 0 auto;
+      height: 90%;
+      top: 5%;
+      border-radius: 9px;
+      padding: 22px;
+      box-sizing: border-box;
+      z-index: 2;
+      text-align: center;
+      transition: transform 0.2s ease, z-index 0.3s;  /* Diubah menjadi 0.2s untuk transform agar lebih cepat */
+    }
+
+    .message p {
+      margin: 15px 0;
+      font-size: 1.3em;
+      color: #333;
+    }
+
+    .letter-corner {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #e94f7c;
+      border-radius: 8px;
+      z-index: 3;
+    }
+
+    .corner-tl {
+      top: 15px;
+      left: 15px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .corner-br {
+      bottom: 15px;
+      right: 15px;
+      border-left: none;
+      border-top: none;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-15px);
+      }
+    }
+
+    .open .flap {
+      transform: rotateX(180deg);
+      z-index: 1;
+    }
+
+    .close .flap {
+      transform: rotateX(0deg);
+      z-index: 5;
+    }
+
+    .close .letter {
+      transform: translateY(0px);
+      z-index: 1;
+    }
+
+    .open .letter {
+      transform: translateY(-130px) rotate(-2deg);
+      z-index: 2;
+      transition: transform 0.4s ease 0.3s, z-index 0.6s ease 0s;  /* Tetap untuk opening */
+    }
+
+    /* Efek hati jatuh */
+    .hearts-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 10;
+    }
+
+    .heart {
+      position: absolute;
+      font-size: 20px;
+      animation-name: fall;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      user-select: none;
+      will-change: transform, opacity;
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* Tombol shuffle musik */
+    #shuffle-btn {
+      margin-top: 20px;
+      padding: 12px 28px;
+      background: linear-gradient(45deg, var(--color-flap), var(--color-env2));
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(214, 51, 108, 0.6);
+      user-select: none;
+      display: none;
+      transition: opacity 0.4s ease;
+      z-index: 5;
+    }
+
+    #shuffle-btn.show {
+      display: inline-block;
+      opacity: 1;
+    }
+
+    #shuffle-btn:hover {
+      filter: brightness(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="envlope-wrapper">
+    <div id="envelope" class="close" aria-label="Amplop maaf, klik untuk membuka">
+      <div class="front flap"></div>
+      <div class="front pocket"></div>
+      <div class="letter">
+        <div class="letter-corner corner-tl"></div>
+        <div class="letter-corner corner-br"></div>
+        <div class="message">
+          <p>Dear My Lilac</p>
+          <p>Wish you all best. I will still watch over and support you, my <span style="color: var(--color-lilac);">Lilac</span>. People come and go, <span style="color: var(--color-heart);">but memories stay</span>. take care yourself</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="shuffle-btn" aria-label="Tombol shuffle musik">Shuffle Musik</button>
+
+  <div class="hearts-container" aria-hidden="true"></div>
+
+  <!-- Audio -->
+  <audio id="bgMusic" preload="auto"></audio>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(function () {
+      const envelope = $('#envelope');
+      const audio = document.getElementById('bgMusic');
+      const heartsContainer = $('.hearts-container');
+      const shuffleBtn = $('#shuffle-btn');
+
+      // Daftar lagu (ganti src sesuai file Anda)
+      const playlist = [
+        'W.H.U.T.mp3',
+        'you!.mp3',
+        'xxl.mp3',
+        'soulmate.mp3',
+        'kenangan_terindah.mp3'
+      ];
+
+      let heartsInterval = null;
+      let currentSongIndex = -1; // Track lagu yang sedang diputar
+
+      function createHeart() {
+        const heart = $('<div class="heart">💖</div>');
+        const size = Math.random() * 20 + 15; // 15px - 35px
+        const left = Math.random() * window.innerWidth;
+        const duration = Math.random() * 5 + 4; // 4s - 9s
+
+        heart.css({
+          left: left + 'px',
+          fontSize: size + 'px',
+          animationDuration: duration + 's',
+          top: '-50px',
+          opacity: 1,
+          position: 'fixed',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        });
+
+        heartsContainer.append(heart);
+
+        setTimeout(() => {
+          heart.remove();
+        }, duration * 1000);
+      }
+
+      function startHearts() {
+        if (heartsInterval) return;
+        heartsInterval = setInterval(createHeart, 300);
+      }
+
+      function stopHearts() {
+        clearInterval(heartsInterval);
+        heartsInterval = null;
+        heartsContainer.empty();
+      }
+
+      // Fungsi untuk shuffle dan mainkan lagu acak (tidak sama dengan yang sedang diputar)
+      function playRandomSong() {
+        let randomIndex;
+        do {
+          randomIndex = Math.floor(Math.random() * playlist.length);
+        } while (randomIndex === currentSongIndex && playlist.length > 1); // Hindari lagu saat ini jika ada lebih dari 1 lagu
+
+        currentSongIndex = randomIndex;
+        audio.src = playlist[randomIndex];
+        audio.play();
+      }
+
+      // Tambahkan event listener untuk shuffle otomatis saat lagu selesai
+      audio.addEventListener('ended', playRandomSong);
+
+      function openEnvelope() {
+        envelope.removeClass('close').addClass('open');
+        shuffleBtn.addClass('show');
+        if (audio.paused) {
+          // Mainkan lagu pertama di playlist saat buka amplop
+          currentSongIndex = 0;
+          audio.src = playlist[0];
+          audio.play();
+        }
+        startHearts();
+      }
+
+      function closeEnvelope() {
+        envelope.removeClass('open').addClass('close');
+        shuffleBtn.removeClass('show');
+        if (!audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.src = '';
+        }
+        currentSongIndex = -1; // Reset index saat tutup
+        stopHearts();
+      }
+
+      envelope.on('click', () => {
+        if (envelope.hasClass('close')) {
+          openEnvelope();
+        } else {
+          closeEnvelope();
+        }
+      });
+
+      shuffleBtn.on('click', () => {
+        playRandomSong();
+      });
+
+      // Optional: pause music if tab inactive
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && !audio.paused) {
+          audio.pause();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
