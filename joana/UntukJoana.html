@@ -249,7 +249,14 @@
         'soulmate.mp3',
         'kenangan_terindah.mp3'
       ];
-
+      const cache = [];
+      playlist.forEach(src => {
+        const a = new Audio();
+        a.src = src;
+        a.preload = 'auto';
+        a.load(); // paksa browser load data buffer
+        cache.push(a);
+      });
       let heartsInterval = null;
       let currentSongIndex = -1; // Track lagu yang sedang diputar
 
@@ -349,3 +356,4 @@
   </script>
 </body>
 </html>
+
