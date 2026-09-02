@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Garden</title>
+    <style>
+        :root {
+            /* Palet Warna Hangat & Romantis */
+            --bg-color: #fdf5f2;
+            --land-color: #a3c17a;
+            --land-color-dark: #7ea360;
+            --stem-color: #87a887;
+            --leaf-color: #9db391;
+            --petal-color: #ffb7c5;
+            --petal-dark: #f0a6b4;
+            --center-light: #fff9e6; /* Warna inti tengah cerah */
+            --center-dark: #fdd487;  /* Warna inti pinggir emas */
+            --text-color: #8c6a6a;
+            --font-main: 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            overflow: hidden;
+        }
+
+        /* --- Trigger Mekanisme (State Manager) --- */
+        #bloom-trigger {
+            display: none;
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- Bagian Teks Romantis --- */
+        .message-container {
+            height: 60px;
+            margin-bottom: 20px;
+            position: relative;
+            width: 320px;
+        }
+
+        .message {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-color);
+            font-weight: 300;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+        }
+
+        .msg-1 { opacity: 1; }
+
+        #bloom-trigger:checked ~ .message-container .msg-1 { opacity: 0; transition-duration: 0.5s; }
+
+        #bloom-trigger:checked ~ .message-container .msg-2 {
+            opacity: 1;
+            transition-delay: 1.5s;
+        }
+
+        #bloom-trigger:checked ~ .message-container .msg-3 {
+            opacity: 1;
+            transition-delay: 4.5s;
+        }
+
+        #bloom-trigger:checked ~ .message-container .msg-2 {
+            animation: fadeOutText 1s forwards;
+            animation-delay: 4s;
+        }
+
+        @keyframes fadeOutText {
+            to { opacity: 0; }
+        }
+
+        /* ======================================================= */
+        /* --- Area Taman: banyak bunga tumbuh dari tanah (land) --- */
+        /* ======================================================= */
+
+        .garden-area {
+            position: relative;
+            cursor: pointer;
+            width: 360px;
+            height: 340px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Tanah / Land, menggantikan pot */
+        .land {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140%;
+            height: 90px;
+            background: linear-gradient(180deg, var(--land-color) 0%, var(--land-color-dark) 100%);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            box-shadow: inset 0 10px 18px rgba(0, 0, 0, 0.08);
+            z-index: 1;
+        }
+
+        /* Sedikit tekstur rerumputan di puncak tanah */
+        .land::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 10%;
+            right: 10%;
+            height: 16px;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.22) 2px, transparent 2px);
+            background-size: 16px 16px;
+            opacity: 0.6;
+        }
+
+        /* --- Satu unit bunga (diulang beberapa kali dengan properti berbeda) --- */
+        .flower {
+            position: absolute;
+            bottom: 55px;
+            transform: translateX(-50%) scale(var(--scale, 1));
+            transform-origin: center bottom;
+            z-index: 5;
+        }
+
+        /* Batang Bunga */
+        .flower .stem {
+            width: 6px;
+            height: 0;
+            background-color: var(--stem-color);
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            border-radius: 4px;
+            transition: height 2.2s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            transition-delay: var(--delay, 0s);
+        }
+
+        #bloom-trigger:checked ~ .garden-area .flower .stem {
+            height: var(--stem-height, 150px);
+        }
+
+        /* Daun */
+        .flower .leaf {
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            background-color: var(--leaf-color);
+            border-radius: 18px 0;
+            opacity: 0;
+            transform: scale(0) rotate(0deg);
+            transform-origin: center bottom;
+            transition: all 1.1s ease-out;
+        }
+
+        .flower .leaf.left {
+            bottom: 38px;
+            left:6px;
+            border-radius: 0 18px;
+            transition-delay: calc(var(--delay, 0s) + 0.8s);
+        }
+
+        .flower .leaf.right {
+            bottom: 58px;
+            right: 6px;
+            transition-delay: calc(var(--delay, 0s) + 1.1s);
+        }
+
+        #bloom-trigger:checked ~ .garden-area .flower .leaf.left {
+            opacity: 1;
+            transform: scale(1) rotate(-25deg);
+        }
+
+        #bloom-trigger:checked ~ .garden-area .flower .leaf.right {
+            opacity: 1;
+            transform: scale(1) rotate(25deg);
+        }
+
+        /* --- Kepala Bunga (Wadah Kelopak) --- */
+        .flower .flower-head {
+            position: absolute;
+            left: 50%;
+            bottom: calc(var(--stem-height, 150px) - 12px);
+            width: 0px;
+            height: 0px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: translateX(-50%);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* Kelopak Individual: warna diatur per-bunga lewat --petal-color / --petal-dark */
+        .flower .petal {
+            position: absolute;
+            background: linear-gradient(to bottom, var(--petal-color, #ffb7c5), var(--petal-dark, #f0a6b4));
+            width: 42px;
+            height: 52px;
+            border-radius: 50% 50% 10% 10% / 60% 60% 10% 10%;
+            opacity: 0;
+            transform: rotate(0deg) translateY(0) scale(0);
+            transform-origin: center;
+            transition: all 2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition-delay: calc(var(--delay, 0s) + 3s);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+        }
+
+        .flower .center-dot {
+            width: 38px;
+            height: 38px;
+            background: radial-gradient(circle at center, var(--center-light) 20%, var(--center-dark) 100%);
+            border-radius: 50%;
+            z-index: 25;
+            position: absolute;
+            left: 50%;
+            top: 52%;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0) translateY(20px);
+            box-shadow: 0 0 10px rgba(255, 219, 125, 0.6);
+            transition: all 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition-delay: calc(var(--delay, 0s) + 2.2s);
+        }
+
+        #bloom-trigger:checked ~ .garden-area .flower .center-dot {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) translateY(6px) !important;
+        }
+
+        /* --- Animasi Mekar (Bloom) --- */
+        #bloom-trigger:checked ~ .garden-area .flower .petal {
+            opacity: 1;
+        }
+
+        /* Posisi akhir kelopak (sama untuk setiap bunga) */
+        #bloom-trigger:checked ~ .garden-area .flower .petal:nth-child(1) { transform: rotate(0deg) translateY(-28px) scale(1); }
+        #bloom-trigger:checked ~ .garden-area .flower .petal:nth-child(2) { transform: rotate(72deg) translateY(-28px) scale(1); }
+        #bloom-trigger:checked ~ .garden-area .flower .petal:nth-child(3) { transform: rotate(144deg) translateY(-28px) scale(1); }
+        #bloom-trigger:checked ~ .garden-area .flower .petal:nth-child(4) { transform: rotate(216deg) translateY(-28px) scale(1); }
+        #bloom-trigger:checked ~ .garden-area .flower .petal:nth-child(5) { transform: rotate(288deg) translateY(-28px) scale(1); }
+
+        /* --- Tip Petunjuk --- */
+        .hint {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #c7b2b2;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: pulseHint 2.5s infinite ease-in-out;
+        }
+
+        #bloom-trigger:checked ~ .hint {
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        @keyframes pulseHint {
+            0%, 100% { opacity: 0.5; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-3px); }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bg-music" loop>
+        <source src="Lany.mp3">
+    </audio>
+
+    <div class="container">
+        <input type="checkbox" id="bloom-trigger">
+
+        <div class="message-container">
+            <div class="message msg-1">Dear Indi.</div>
+            <div class="message msg-2">May your days be as vibrant as a spring garden.</div>
+        </div>
+
+        <label for="bloom-trigger" class="garden-area">
+
+            <!-- Bunga 1: merah muda, agak kecil, di belakang kiri -->
+            <div class="flower" style="left:8%; bottom:54px; --stem-height:150px; --delay:0s; --scale:0.85; --petal-color:#ffb7c5; --petal-dark:#f0a6b4;">
+                <div class="flower-head">
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="center-dot"></div>
+                </div>
+                <div class="leaf left"></div>
+                <div class="leaf right"></div>
+                <div class="stem"></div>
+            </div>
+
+            <!-- Bunga 2: kuning lembut, lebih tinggi -->
+            <div class="flower" style="left:24%; bottom:58px; --stem-height:170px; --delay:0.25s; --scale:1.05; --petal-color:#fff3b0; --petal-dark:#f7cf6a;">
+                <div class="flower-head">
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="center-dot"></div>
+                </div>
+                <div class="leaf left"></div>
+                <div class="leaf right"></div>
+                <div class="stem"></div>
+            </div>
+
+            <!-- Bunga 3: lavender, sedikit lebih pendek -->
+            <div class="flower" style="left:40%; bottom:56px; --stem-height:140px; --delay:0.5s; --scale:0.9; --petal-color:#e3c6f0; --petal-dark:#c9a0e0;">
+                <div class="flower-head">
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="center-dot"></div>
+                </div>
+                <div class="leaf left"></div>
+                <div class="leaf right"></div>
+                <div class="stem"></div>
+            </div>
+
+            <!-- Bunga 4: krem/putih, paling besar, di tengah depan -->
+            <div class="flower" style="left:57%; bottom:60px; --stem-height:165px; --delay:0.75s; --scale:1.12; --petal-color:#fff8f0; --petal-dark:#f2ddc4;">
+                <div class="flower-head">
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="center-dot"></div>
+                </div>
+                <div class="leaf left"></div>
+                <div class="leaf right"></div>
+                <div class="stem"></div>
+            </div>
+
+            <!-- Bunga 5: peach -->
+            <div class="flower" style="left:74%; bottom:55px; --stem-height:145px; --delay:1s; --scale:0.88; --petal-color:#ffd1b0; --petal-dark:#ffab77;">
+                <div class="flower-head">
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="center-dot"></div>
+                </div>
+                <div class="leaf left"></div>
+                <div class="leaf right"></div>
+                <div class="stem"></div>
+            </div>
+
+            <!-- Bunga 6: merah muda tua, penutup di kanan -->
+            <div class="flower" style="left:90%; bottom:58px; --stem-height:155px; --delay:1.25s; --scale:1; --petal-color:#ffc4d6; --petal-dark:#ff97b8;">
+                <div class="flower-head">
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="petal"></div>
+                    <div class="center-dot"></div>
+                </div>
+                <div class="leaf left"></div>
+                <div class="leaf right"></div>
+                <div class="stem"></div>
+            </div>
+
+            <div class="land"></div>
+        </label>
+
+        <div class="hint">Sentuh taman</div>
+    </div>
+
+    <script>
+        const bloomTrigger = document.getElementById('bloom-trigger');
+        const bgMusic = document.getElementById('bg-music');
+        bgMusic.volume = 0.4;
+
+        bloomTrigger.addEventListener('change', function() {
+            if (this.checked) {
+                bgMusic.play().catch(error => {
+                    console.log("Autoplay dicegah browser sampai ada interaksi.");
+                });
+            } else {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+            }
+        });
+    </script>
+
+</body>
+</html>
