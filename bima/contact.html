@@ -59,6 +59,17 @@
           boxShadow: {
             card: '0 1px 3px rgba(0,0,0,0.04), 0 10px 24px -8px rgba(28, 48, 40, 0.08)',
             float: '0 20px 40px -12px rgba(28, 48, 40, 0.16)',
+          },
+          animation: {
+            'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+          },
+          keyframes: {
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(4px, 0, 0)' },
+            }
           }
         }
       }
@@ -89,6 +100,32 @@
     .reveal.is-visible {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .form-input {
+      width: 100%;
+      border-radius: 0.75rem;
+      border-width: 1px;
+      border-color: #e6e2d6;
+      background-color: #faf8f3;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+      color: #1e322a;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      transition-property: all;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      transition-duration: 200ms;
+    }
+    .form-input:focus {
+      border-color: #3c7a62;
+      box-shadow: 0 0 0 4px rgba(60, 122, 98, 0.05);
+    }
+    .form-input.error {
+      border-color: #dc2626;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.05);
     }
 
     ::-webkit-scrollbar { width: 8px; }
@@ -189,52 +226,52 @@
       <div class="mt-14 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         
         <!-- Left Column: Contact Cards with Copy to Clipboard -->
-        <div class="space-y-4">
+        <div class="flex flex-col gap-4">
           
           <!-- Phone Card -->
-          <div class="reveal flex items-center gap-4 rounded-3xl border border-border bg-card p-6 shadow-card transition-transform hover:-translate-y-0.5">
+          <div class="reveal flex items-center gap-4 rounded-3xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-float active:scale-[0.98]">
             <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
             </span>
             <div class="min-w-0 flex-1">
               <p class="eyebrow text-muted-foreground">Phone</p>
-              <a href="tel:+6285111217733" class="block truncate text-foreground font-medium hover:text-leaf transition-colors">
+              <a href="tel:+6285111217733" class="block truncate text-foreground font-medium hover:text-leaf transition-colors text-lg">
                 0851-1121-7733
               </a>
             </div>
-            <button type="button" aria-label="Copy Phone" onclick="copyToClipboard('Phone', '0851-1121-7733')" id="btn-copy-Phone" class="grid size-10 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:text-primary">
+            <button type="button" aria-label="Copy Phone" onclick="copyToClipboard('Phone', '0851-1121-7733')" id="btn-copy-Phone" class="grid size-10 place-items-center rounded-xl border border-border text-muted-foreground transition-all hover:text-primary hover:border-primary active:scale-90">
               <svg class="size-4 copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <svg class="size-4 check-icon text-leaf hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             </button>
           </div>
 
           <!-- Email Card -->
-          <div class="reveal flex items-center gap-4 rounded-3xl border border-border bg-card p-6 shadow-card transition-transform hover:-translate-y-0.5">
+          <div class="reveal flex items-center gap-4 rounded-3xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-float active:scale-[0.98]">
             <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
             </span>
             <div class="min-w-0 flex-1">
               <p class="eyebrow text-muted-foreground">Email</p>
-              <a href="mailto:email.bimaaryadewa@gmail.com" class="block truncate text-foreground font-medium hover:text-leaf transition-colors">
+              <a href="mailto:email.bimaaryadewa@gmail.com" class="block truncate text-foreground font-medium hover:text-leaf transition-colors text-lg">
                 email.bimaaryadewa@gmail.com
               </a>
             </div>
-            <button type="button" aria-label="Copy Email" onclick="copyToClipboard('Email', 'email.bimaaryadewa@gmail.com')" id="btn-copy-Email" class="grid size-10 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:text-primary">
+            <button type="button" aria-label="Copy Email" onclick="copyToClipboard('Email', 'email.bimaaryadewa@gmail.com')" id="btn-copy-Email" class="grid size-10 place-items-center rounded-xl border border-border text-muted-foreground transition-all hover:text-primary hover:border-primary active:scale-90">
               <svg class="size-4 copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <svg class="size-4 check-icon text-leaf hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             </button>
           </div>
 
           <!-- Location Card -->
-          <div class="reveal flex items-center gap-4 rounded-3xl border border-border bg-card p-6 shadow-card transition-transform hover:-translate-y-0.5">
+          <div class="reveal flex items-center gap-4 rounded-3xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-float active:scale-[0.98]">
             <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-secondary text-primary">
               <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </span>
             <div class="min-w-0 flex-1">
               <p class="eyebrow text-muted-foreground">Location</p>
-              <p class="truncate text-foreground font-medium">Semarang, Central Java, Indonesia</p>
+              <p class="truncate text-foreground font-medium text-lg">Semarang, Central Java, Indonesia</p>
             </div>
-            <button type="button" aria-label="Copy Location" onclick="copyToClipboard('Location', 'Semarang, Central Java, Indonesia')" id="btn-copy-Location" class="grid size-10 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:text-primary">
+            <button type="button" aria-label="Copy Location" onclick="copyToClipboard('Location', 'Semarang, Central Java, Indonesia')" id="btn-copy-Location" class="grid size-10 place-items-center rounded-xl border border-border text-muted-foreground transition-all hover:text-primary hover:border-primary active:scale-90">
               <svg class="size-4 copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <svg class="size-4 check-icon text-leaf hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             </button>
@@ -272,34 +309,52 @@
           </div>
 
           <!-- Form Element -->
-          <form id="contactForm" onsubmit="validateAndSubmit(event)" noValidate class="space-y-5">
-            <h3 class="font-display text-2xl text-primary font-semibold">Send a message</h3>
+          <form id="contactForm" onsubmit="validateAndSubmit(event)" noValidate class="space-y-6">
+            <div class="flex flex-col gap-1">
+              <h3 class="font-display text-2xl text-primary font-semibold">Send a message</h3>
+              <p class="text-sm text-muted-foreground">Required fields are marked with *</p>
+            </div>
             
             <!-- Name Input -->
-            <div>
-              <label for="name" class="eyebrow text-muted-foreground block">Your name</label>
-              <input id="name" name="name" type="text" placeholder="Jane Doe" class="mt-2 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground outline-none transition-colors focus:border-leaf" />
-              <p id="error-name" class="mt-1.5 text-xs text-destructive hidden">Please enter your name (at least 2 characters).</p>
+            <div class="group">
+              <label for="name" class="eyebrow text-muted-foreground block mb-2 group-focus-within:text-leaf transition-colors">Your name *</label>
+              <input id="name" name="name" type="text" placeholder="Jane Doe" class="form-input" required aria-describedby="error-name" />
+              <p id="error-name" class="mt-2 text-xs text-destructive hidden flex items-center gap-1.5 font-medium">
+                <svg class="size-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Please enter your name (at least 2 characters).
+              </p>
             </div>
 
             <!-- Email Input -->
-            <div>
-              <label for="email" class="eyebrow text-muted-foreground block">Email</label>
-              <input id="email" name="email" type="email" placeholder="you@company.com" class="mt-2 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground outline-none transition-colors focus:border-leaf" />
-              <p id="error-email" class="mt-1.5 text-xs text-destructive hidden">Please enter a valid email address.</p>
+            <div class="group">
+              <label for="email" class="eyebrow text-muted-foreground block mb-2 group-focus-within:text-leaf transition-colors">Email *</label>
+              <input id="email" name="email" type="email" placeholder="you@company.com" class="form-input" required aria-describedby="error-email" />
+              <p id="error-email" class="mt-2 text-xs text-destructive hidden flex items-center gap-1.5 font-medium">
+                <svg class="size-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Please enter a valid email address.
+              </p>
             </div>
 
             <!-- Message Textarea -->
-            <div>
-              <label for="message" class="eyebrow text-muted-foreground block">Message</label>
-              <textarea id="message" name="message" rows="5" placeholder="Tell me about the role or project…" class="mt-2 w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-foreground outline-none transition-colors focus:border-leaf"></textarea>
-              <p id="error-message" class="mt-1.5 text-xs text-destructive hidden">Message should be at least 10 characters.</p>
+            <div class="group">
+              <label for="message" class="eyebrow text-muted-foreground block mb-2 group-focus-within:text-leaf transition-colors">Message *</label>
+              <textarea id="message" name="message" rows="5" placeholder="Tell me about the role or project…" class="form-input resize-none" required aria-describedby="error-message"></textarea>
+              <p id="error-message" class="mt-2 text-xs text-destructive hidden flex items-center gap-1.5 font-medium">
+                <svg class="size-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Message should be at least 10 characters.
+              </p>
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 font-medium text-primary-foreground transition-transform hover:-translate-y-0.5 shadow-sm">
-              <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.536 21.686a.5.5 0 00.937-.024l6.5-19a.496.496 0 00-.635-.635l-19 6.5a.5.5 0 00-.024.937l7.93 3.18a2 2 0 011.112 1.11zM21.854 2.147l-10.94 10.939"/></svg>
-              Send message
+            <button type="submit" id="submitBtn" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 disabled:opacity-70 disabled:pointer-events-none">
+              <span id="btnText" class="flex items-center gap-2">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.536 21.686a.5.5 0 00.937-.024l6.5-19a.496.496 0 00-.635-.635l-19 6.5a.5.5 0 00-.024.937l7.93 3.18a2 2 0 011.112 1.11zM21.854 2.147l-10.94 10.939"/></svg>
+                Send message
+              </span>
+              <span id="btnLoading" class="hidden flex items-center gap-2">
+                <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Sending...
+              </span>
             </button>
           </form>
 
@@ -378,48 +433,83 @@
     // Form validation
     function validateAndSubmit(e) {
       e.preventDefault();
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const message = document.getElementById('message').value.trim();
+      const form = e.target;
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnLoading = document.getElementById('btnLoading');
+      
+      const nameInput = document.getElementById('name');
+      const emailInput = document.getElementById('email');
+      const messageInput = document.getElementById('message');
+      
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      const message = messageInput.value.trim();
 
       let hasError = false;
 
       // Name validation
       if (name.length < 2) {
         document.getElementById('error-name').classList.remove('hidden');
-        document.getElementById('name').classList.add('border-destructive');
+        nameInput.classList.add('error', 'animate-shake');
+        setTimeout(() => nameInput.classList.remove('animate-shake'), 400);
         hasError = true;
       } else {
         document.getElementById('error-name').classList.add('hidden');
-        document.getElementById('name').classList.remove('border-destructive');
+        nameInput.classList.remove('error');
       }
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         document.getElementById('error-email').classList.remove('hidden');
-        document.getElementById('email').classList.add('border-destructive');
+        emailInput.classList.add('error', 'animate-shake');
+        setTimeout(() => emailInput.classList.remove('animate-shake'), 400);
         hasError = true;
       } else {
         document.getElementById('error-email').classList.add('hidden');
-        document.getElementById('email').classList.remove('border-destructive');
+        emailInput.classList.remove('error');
       }
 
       // Message validation
       if (message.length < 10) {
         document.getElementById('error-message').classList.remove('hidden');
-        document.getElementById('message').classList.add('border-destructive');
+        messageInput.classList.add('error', 'animate-shake');
+        setTimeout(() => messageInput.classList.remove('animate-shake'), 400);
         hasError = true;
       } else {
         document.getElementById('error-message').classList.add('hidden');
-        document.getElementById('message').classList.remove('border-destructive');
+        messageInput.classList.remove('error');
       }
 
       if (!hasError) {
-        document.getElementById('contactForm').classList.add('hidden');
-        document.getElementById('successCard').classList.remove('hidden');
+        // Simulate sending
+        submitBtn.disabled = true;
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
+
+        setTimeout(() => {
+          document.getElementById('contactForm').classList.add('hidden');
+          document.getElementById('successCard').classList.remove('hidden');
+          
+          submitBtn.disabled = false;
+          btnText.classList.remove('hidden');
+          btnLoading.classList.add('hidden');
+          
+          window.scrollTo({ top: document.querySelector('main').offsetTop - 100, behavior: 'smooth' });
+        }, 1500);
       }
     }
+
+    // Real-time validation cleanup
+    ['name', 'email', 'message'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        if (this.classList.contains('error')) {
+          this.classList.remove('error');
+          document.getElementById('error-' + id).classList.add('hidden');
+        }
+      });
+    });
 
     function resetFormState() {
       document.getElementById('contactForm').reset();
